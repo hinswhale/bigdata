@@ -69,9 +69,9 @@ makeRDD方法底层调用了parallelize方法
 
 
 ## 3 rdd并行度与分区
-- Application->Job->Stage-> Task 1对多
 
-## 3. 常用RDD算子
+
+## 4. 常用RDD算子
 
 **`惰性求值`**
 
@@ -147,14 +147,13 @@ makeRDD方法底层调用了parallelize方法
 
 ## 4. DAG的生成和划分Stage
 ![img.png](../../pic/stage.png)
+
 划分stage的依据就是RDD之间的宽窄依赖
 
 Spark任务会根据RDD之间的依赖关系，形成一个DAG有向无环图，DAG会提交给DAGScheduler，
 DAGScheduler会把DAG划分成互相依赖的多个stage。
 
-核心算法：回溯算法
-
-从后往前回溯/反向解析，遇到窄依赖加入本Stage，遇见宽依赖进行Stage切分。
+核心算法：回溯算法 从后往前回溯/反向解析，遇到窄依赖加入本Stage，遇见宽依赖进行Stage切分。
 
 
 ### 4.1 stage划分
@@ -164,6 +163,7 @@ DAGScheduler会把DAG划分成互相依赖的多个stage。
 ### 4.2 DAG job Action 分区 关系
 ![img.png](../../pic/stage分析.png)
 
+
 * 概念
   - DAG
   - job 
@@ -171,6 +171,7 @@ DAGScheduler会把DAG划分成互相依赖的多个stage。
   - tasks 最小执行单位  每一个 task 表现为一个本地计算
 
 * 联系⚠️
+  - - Application->Job->Stage-> Task 1对多
   - 有几个Action，就有几个DAG,一个程序可有多个DAG
   - 一个DAG可以有多个Stage【根据宽依赖/shuffle进行划分】
   - 同一个Stage可以有多个Task并行执行(task数=分区数，如上图，Stage1 中有三个分区P1、P2、P3，对应的也有三个 Task)
