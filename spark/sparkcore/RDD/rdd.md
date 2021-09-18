@@ -1,6 +1,7 @@
 # RDD
 
-> 📌 **关键词：** JAVA_HOME、CLASSPATH、Path、环境变量、IDE
+> 📌 **关键词：** `RDD`、`stage`、`Transformations& Actions`、`宽依赖&窄依赖`、`分区`
+
 
 <!-- TOC depthFrom:2 depthTo:3 -->
 
@@ -44,16 +45,36 @@ RDD(Resilient Distributed Dataset) 弹性分布式数据集
 
 ### 2.1. 通过读取文件生成的
 
-### 2.2. 通过并行化的方式创建RDD
+- 以行为单位，读取数据都是字符串
 ```scala
-num_rdd = sc.parallelize([1,2,3])
+val rdd1 = sc.textFile("hdfs://node1:8020/wordcount/input/words.txt")
 ```
+- 以文件为单位
+```scala
+val rdd1 = sc.whoTextFiles("hdfs://node1:8020/wordcount/input/words.txt")
+```
+
+### 2.2. 通过并行化的方式创建RDD
+
+```scala
+num_rdd = sc.parallelize([1,2,3]) //parallelize 并行
+```
+或
+```scala
+val rdd = sc.makeRDD(List(1, 2, 3, 4), 2) // 2为分区，不写会有默认值
+```
+makeRDD方法底层调用了parallelize方法
+
 ### 2.3. 其他方式
 
 
+## 3 rdd并行度与分区
+- Application->Job->Stage-> Task 1对多
+
 ## 3. 常用RDD算子
 
-`惰性求值`
+**`惰性求值`**
+
 - Transformations ：从一个已知的 RDD 中创建出来一个新的 RDD
 - Actions： 在数据集上计算结束之后, 给驱动程序返回一个值
 
@@ -114,8 +135,7 @@ num_rdd = sc.parallelize([1,2,3])
 ### 3.1. 宽依赖
 包含Shuffle过程，无法实现流水线方式处理
 - 父 RDD 的分区被不止一个子 RDD 的分区依赖
-- 具有宽依赖的 transformations 
-  - 包括: sort, reduceByKey, groupByKey, join, 和调用rePartition函数的任何操作.
+- 具有宽依赖的 transformations 包括: sort, reduceByKey, groupByKey, join, 和调用rePartition函数的任何操作.
 
 ### 3.2. 窄依赖
 可以实现流水线优化
@@ -127,18 +147,45 @@ num_rdd = sc.parallelize([1,2,3])
 
 ## 4. DAG的生成和划分Stage
 ![img.png](../../pic/stage.png)
+划分stage的依据就是RDD之间的宽窄依赖
 
-Spark任务会根据RDD之间的依赖关系，形成一个DAG有向无环图，DAG会提交给DAGScheduler，DAGScheduler会把DAG划分成互相依赖的多个stage，划分stage的依据就是RDD之间的宽窄依赖。
+Spark任务会根据RDD之间的依赖关系，形成一个DAG有向无环图，DAG会提交给DAGScheduler，
+DAGScheduler会把DAG划分成互相依赖的多个stage。
+
+核心算法：回溯算法
+
+从后往前回溯/反向解析，遇到窄依赖加入本Stage，遇见宽依赖进行Stage切分。
+
 
 ### 4.1 stage划分
 - 对于窄依赖，partition的转换处理在Stage中完成计算。
 - 对于宽依赖，由于有Shuffle的存在，只能在parent RDD处理完成后，才能开始接下来的计算，因此宽依赖是划分Stage的依据。
+
+### 4.2 DAG job Action 分区 关系
+![img.png](../../pic/stage分析.png)
+
+* 概念
+  - DAG
+  - job 
+  - stages 
+  - tasks 最小执行单位  每一个 task 表现为一个本地计算
+
+* 联系⚠️
+  - 有几个Action，就有几个DAG,一个程序可有多个DAG
+  - 一个DAG可以有多个Stage【根据宽依赖/shuffle进行划分】
+  - 同一个Stage可以有多个Task并行执行(task数=分区数，如上图，Stage1 中有三个分区P1、P2、P3，对应的也有三个 Task)
+
+
+
 ## 5. 
 ### 缓存
 - 将该 RDD 缓存起来，该 RDD 只有在第一次计算的时候会根据血缘关系得到分区的数据，在后续其他地方用到该 RDD 的时候，会直接从缓存处取而不用再根据血缘关系计算，这样就加速后期的重用
 ### checkpoint
 
-## 5. 参考资料
+
+## 5. 第一个程序：Hello World
+
+## 6. 参考资料
 
 常见的 Java IDE 如下：
 
@@ -148,5 +195,3 @@ Spark任务会根据RDD之间的依赖关系，形成一个DAG有向无环图，
 - MyEclipse - 由 Genuitec 公司开发的一款商业化软件，是应用比较广泛的 Java 应用程序集成开发环境。
 - EditPlus - 如果正确配置 Java 的编译器“Javac”以及解释器“Java”后，可直接使用 EditPlus 编译执行 Java 程序。
 
-
-## 6. 第一个程序：Hello World
