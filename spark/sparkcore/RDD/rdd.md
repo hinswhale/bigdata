@@ -26,43 +26,117 @@ RDD(Resilient Distributed Dataset) 弹性分布式数据集
     - 数据存储
 - 弹性
     - 依赖关系
-        - spark通过特别的处理方案简化依赖关系
+        - 维护血缘关系
     - 计算
         - 计算基于内存，性能高，可与磁盘灵活切换
     - 分区
-        - 可通过指定算子改变分区数量
+        - 可通过指定算子改变分区数量，并行计算
+        - 数据不同，计算逻辑相同
     - 容错
         - 重试处理
-- 特性：
-  * 不可变，只能转化【算子】
-  * 可分区
-  * 缓存【防止血缘关系断掉，根据DAG保存中间过程减少运算量】
-  * 依赖关系【DAG，划分并行】
+### 特性：
+  * 只读   - 只能通过算子创建新的RDD，原RDD未受影响【算子】
+  * 分区   -  每个 RDD 被切分成多个分区(partition), 每个分区可能会在集群中不同的节点上进行计算
+  * 依赖关系可并行   - DAG，划分并行
+  * 缓存&持久化
 
 ## 2. 创建方式
 
 ### 2.1. 通过读取文件生成的
+
 ### 2.2. 通过并行化的方式创建RDD
+```scala
+num_rdd = sc.parallelize([1,2,3])
+```
 ### 2.3. 其他方式
 
 
-## 2. 常用RDD算子
+## 3. 常用RDD算子
 
-### 2.1. Transformation
-### 2.2. Action
+`惰性求值`
+- Transformations ：从一个已知的 RDD 中创建出来一个新的 RDD
+- Actions： 在数据集上计算结束之后, 给驱动程序返回一个值
 
+在 Spark 中几乎所有的transformation操作都是`懒执行`的(lazy).
+
+只有遇到action，才会执行 RDD 的计算(即延迟计）,只有遇到action，才会执行 RDD 的计算(即延迟计）
+
+### 3.1. Transformation
+- 单Value类型
+  1. map
+  2. mapPartitions 分区
+  2. mapPartitionsWithIndex
+  3. flatMap 扁平化
+  4. map  vs mapPartitions  mapPartitions 批处理 性能好，但数据不释放
+  5. glom 将每个分区形成一个数组
+  6. groupBy
+  7. filter
+  8. sample 采样，数据倾斜时应用
+  9. distinct
+  10. coalesce 缩减分区
+  11. repartition shuffle 随机洗牌
+  12. sortBy
+- K-V类型
+  1. map
+  2. mapPartitions 分区
+  2. mapPartitionsWithIndex
+  3. flatMap 扁平化
+  4. map  vs mapPartitions  mapPartitions 批处理 性能好，但数据不释放
+  5. glom 将每个分区形成一个数组
+  6. groupBy
+  7. filter
+  8. sample 采样，数据倾斜时应用
+  9. distinct
+  10. coalesce 缩减分区
+  11. repartition shuffle 随机洗牌
+  12. sortBy
+- 双V类型
+  1. union
+  2. subtract
+  2. intersection
+  3. zip 一一对应 分区数量相同，分区内数据相同
+
+### 3.2. Action
+  1. reduce
+  2. collect
+  3. first
+  4. take
+  5. takeOrdered
+  6. aggregate 分区间初始值
+  7. foreach
+  8. countByKey
+  9. save
 
 ## 3. RDD依赖关系
 
+是否shuffle
+![img.png](../../pic/依赖关系.png)
 ### 3.1. 宽依赖
-
+包含Shuffle过程，无法实现流水线方式处理
+- 父 RDD 的分区被不止一个子 RDD 的分区依赖
+- 具有宽依赖的 transformations 
+  - 包括: sort, reduceByKey, groupByKey, join, 和调用rePartition函数的任何操作.
 
 ### 3.2. 窄依赖
+可以实现流水线优化
+- 父 RDD 中的每个分区最多只有一个子分区, 形象的比喻为独生子女
+- 可以在任何的的一个分区上单独执行, 而不需要其他分区的任何信息.
 
+### 3.3 总结
+`shuffle` 操作是 spark 中最耗时的操作,应尽量避免不必要的 `shuffle`.
 
 ## 4. DAG的生成和划分Stage
+![img.png](../../pic/stage.png)
 
-执行命令 `java -version` ，如果安装成功，会打印当前 java 的版本信息。
+Spark任务会根据RDD之间的依赖关系，形成一个DAG有向无环图，DAG会提交给DAGScheduler，DAGScheduler会把DAG划分成互相依赖的多个stage，划分stage的依据就是RDD之间的宽窄依赖。
+
+### 4.1 stage划分
+- 对于窄依赖，partition的转换处理在Stage中完成计算。
+- 对于宽依赖，由于有Shuffle的存在，只能在parent RDD处理完成后，才能开始接下来的计算，因此宽依赖是划分Stage的依据。
+## 5. 
+### 缓存
+- 将该 RDD 缓存起来，该 RDD 只有在第一次计算的时候会根据血缘关系得到分区的数据，在后续其他地方用到该 RDD 的时候，会直接从缓存处取而不用再根据血缘关系计算，这样就加速后期的重用
+### checkpoint
 
 ## 5. 参考资料
 
