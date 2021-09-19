@@ -197,7 +197,8 @@ object mapPartitions {
     * 分区数的确定, 和对数组中的元素如何进行分区
 * 示例代码 取某个分区数据
 
-  ```package spark.core.rdd.transform
+```scala
+import package spark.core.rdd.transform
 
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
