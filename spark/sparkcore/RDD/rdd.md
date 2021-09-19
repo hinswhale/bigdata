@@ -95,13 +95,18 @@ makeRDD方法底层调用了parallelize方法
 
 ![img.png](../../pic/分区.png)
 
-- 偏移量 例子： 最小分区：3 文件内容：
-  ```text
-    1
-    2
-    3
-   ```
-  结果： 文件1： 1 2 文件2：3 文件3： 空
+- 偏移量 
+
+```text
+例子： 
+    最小分区：3 
+    文件内容：
+            1
+            2
+            3
+结果： 文件1： 1 2 文件2：3 文件3： 空
+```
+     
 
 # 4. 常用RDD算子
 
@@ -121,37 +126,47 @@ makeRDD方法底层调用了parallelize方法
 ### 单Value类型
 
 1. map
+- 功能
+  * 一个分区 数据顺序执行
+  * 不同分区间 无序
 
-* 一个分区 数据顺序执行
-* 不同分区间 无序
+```scala
+import org.apache.spark.rdd.RDD
+import org.apache.spark.{SparkConf, SparkContext}
 
-```
-scala > val rdd1 = sc.parallelize(1 to 10)
-rdd1: org.apache.spark.rdd.RDD[Int] = ParallelCollectionRDD[0] at parallelize at <console>:24
-// 得到一个新的 RDD, 但是这个 RDD 中的元素并不是立即计算出来的
-scala> val rdd2 = rdd1.map(_ * 2, numslice=2) //numslice 分区
-rdd2: org.apache.spark.rdd.RDD[Int] = MapPartitionsRDD[1] at map at
-<console>:26
+object Spark01_RDD_Operator_Transform_Part {
+  def main(args: Array[String]): Unit = {
+    val sparkConf: SparkConf = new SparkConf().setMaster("local[*]").setAppName("Operator")
+    val sc = new SparkContext(sparkConf)
 
-// 开始计算 rdd2 中的元素, 并把计算后的结果传递给驱动程序
-scala> rdd2.collect
-res0: Array[Int] = Array(2, 4, 6, 8, 10, 12, 14, 16, 18, 20)
+    // TODO 算子 —— map
+    //将同一个分区的数据直接转换为相同类型的内存数组进行处理，分区不变
+    val rdd: RDD[Int] = sc.makeRDD(List(1, 2, 3, 4), 2)
+    //[1,2],[3,4]
+    rdd.saveAsTextFile("output")
+    val mapRDD: RDD[Int] = rdd.map(_ * 2)
+    //[2,4],[6,8]
+    mapRDD.saveAsTextFile("output1")
+    sc.stop()
+  }
+}
   ```  
 
 2. mapPartitions 考虑分区
 
-* 语法
+- 语法
 
   ```mapPartitions(func) Iterator<T> => Iterator<U>```
 
-* 可应用场景 a. 每个分区最大值或对分区数据做批处理
+- 应用场景
+  *  每个分区最大值或对分区数据做批处理
 
-* 🏠`map vs mapPartitions`
-    * mapPartitions 性能更高，每个分区一次拿到所有数据
+- 🏠`map vs mapPartitions`
+   * mapPartitions 性能更高，每个分区一次拿到所有数据
 
-      e.g. 假设有N个元素，有M个分区，那么map的函数的将被调用N次, 而mapPartitions被调用M次,一个函数一次处理所有分区。
-    * mapPartitions 内存有限时不推荐 处理完的数据不会被释放，存在对象引用，数据量较大的时候，容易内存溢出，此时应考虑map
-    * map 转换后数量不变，mapPartitions可以改变
+   e.g. 假设有N个元素，有M个分区，那么map的函数的将被调用N次, 而mapPartitions被调用M次,一个函数一次处理所有分区。
+   * mapPartitions 内存有限时不推荐 处理完的数据不会被释放，存在对象引用，数据量较大的时候，容易内存溢出，此时应考虑map
+   * map 转换后数量不变，mapPartitions可以改变
 
 ```scala
 package spark.core.rdd.transform
@@ -189,13 +204,14 @@ object mapPartitions {
 
 3. mapPartitionsWithIndex 索引号
 
-* 语法
+- 语法
 
   ``` mapPartitionsWithIndex(func) (Int, Iterator<T>) => Iterator<U>```
-* 功能
+- 功能
     * 多提供一个Int值来表示分区的索引
     * 分区数的确定, 和对数组中的元素如何进行分区
-* 示例代码 取某个分区数据
+- 示例代码 
+  * 取某个分区数据
 
 ```scala
 package spark.core.rdd.transform
@@ -228,16 +244,18 @@ object mapPartitionsWithIndex {
 ```
      
 4. flatMap 扁平化
-   * 功能 扁平化 
-       * 如[[1, 2] [3, 4]] = > [1, 2, 3, 4]
-       * 拆分单词 "Hello Scala", "Hello Spark" => Hello  Scala Hello Spark
+- 功能 
+  * 扁平化
+- 场景
+  * 如[[1, 2] [3, 4]] = > [1, 2, 3, 4]
+  * 拆分单词 "Hello Scala", "Hello Spark" => Hello  Scala Hello Spark
   
-   * 代码
+- 代码
 
 ```scala
-/**
+/*
 [1, 2] [3, 4] = > [1, 2, 3, 4]
-/**
+*/
 package spark.core.rdd.transform
 
 import org.apache.spark.rdd.RDD
@@ -259,7 +277,7 @@ object flatMap {
 
   }
 }
-  ```
+```
 
 * ～模式匹配～
 ```scala
@@ -275,14 +293,15 @@ val flatMapRDD = rdd.flatMap(
 )
 ```
 5. glom 将每个分区形成一个数组
-   * 用法
+- 用法
+
      ```RDD[Array[T]] ```
-   * 功能 
+- 功能 
      * 将每个分区形成一个数组
      * 分区个数不变
-   * 代码
+- 代码
    
-   打印各分区数据
+   * 打印各分区数据
 
    ```scala
     val rdd: RDD[Int] = sc.makeRDD(List(1, 2, 3, 4), 2)
@@ -295,7 +314,8 @@ val flatMapRDD = rdd.flatMap(
     3,4
    */
    ```
-   求各分区最大值之和
+   
+   * 求各分区最大值之和
 
     ```scala
     val rdd: RDD[Int] = sc.makeRDD(List(1, 2, 3, 4), 2)
@@ -308,13 +328,14 @@ val flatMapRDD = rdd.flatMap(
     ```
   
 6. groupBy
-   * 用法
-     ```groupBy(func) RDD[(K, Iterable[T])```
-   * 功能 
+- 用法
+     
+   ```groupBy(func) RDD[(K, Iterable[T])```
+- 功能 
      * 按照func的返回值做为key进行分组
      * shuffle
      
-   * 代码
+- 代码
    
     ```scala
     val rdd = sc.makeRDD(List(1, 2, 3, 4))
@@ -323,14 +344,14 @@ val flatMapRDD = rdd.flatMap(
     ```
 
 7. filter
-   * 用法
-     `````
-   * 功能 
+- 用法
+- 功能 
      * 过滤
      * 产生数据倾斜 分区各区数据差别较大
 
 8. sample 随机采样
-   * 用法
+- 用法
+
     sample算子需要传递三个参数
      * 第一个参数  抽取数据后是否将数据返回 
        * true（返回：（泊松算法）） false（不返回：（伯努利算法））
@@ -338,12 +359,11 @@ val flatMapRDD = rdd.flatMap(
         * 如果抽取不放回的场合：数据源中每条数据被抽取的概率,基准值的概念
         * 如果抽取放回的场合：表示数据源中的每条数据被抽取的可能次数
      * 第三个参数 随机算法种子 如果不传，则使用当前时间
-   * 功能 
+- 功能 
      * 数据倾斜时应用
 
-  * 代码
-
-  ```scala
+- 代码
+```scala
   import org.apache.spark.rdd.RDD
   import org.apache.spark.{SparkConf, SparkContext}
   
@@ -371,12 +391,13 @@ val flatMapRDD = rdd.flatMap(
       sc.stop()
     }
   }
-
 ```
 
-10. distinct
+9. distinct
+
+
 ```scala
-1import org.apache.spark.rdd.RDD
+import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
 
 object Spark09_RDD_Operator_Transform {
@@ -398,13 +419,14 @@ object Spark09_RDD_Operator_Transform {
     sc.stop()
   }
 ```
-11. coalesce 缩减/扩大分区
-   * 功能
+10. coalesce 缩减/扩大分区
+- 功能
      - 缩减分区数，第二个参数shuffle
        - 默认参数: 数据没有被打乱，可能导致`数据倾斜`
        - 如果想让数据均衡，可以使用shuffle进行处理
-    - 扩大分区，必须shuffle，否则若不能打乱数据，相当于没有起作业
-   * 代码
+     - 扩大分区，必须shuffle，否则若不能打乱数据，相当于没有起作业
+- 代码
+
 ```scala
 package spark.core.rdd.transform
 
@@ -432,38 +454,40 @@ object coalesce {
 }
    ```
 
-13. repartition 
-    * 用法
-      * 扩大分区，底层是coalesce，参数：shuffle
-    1. sortBy 根据指定规则排序
-       * 代码
-        ```scala
-       package spark.core.rdd.transform
-    
-    
-       import org.apache.spark.rdd.RDD
-       import org.apache.spark.{SparkConf, SparkContext}
-    
-       object sortBy {
-         def main(args: Array[String]): Unit = {
-           val sparkConf: SparkConf = new SparkConf().setMaster("local[*]").setAppName("Operator")
-           val sc = new SparkContext(sparkConf)
-    
-           // TODO 算子 —— coalesce
-           val rdd: RDD[Int] = sc.makeRDD(List(1, 4, 2, 5, 3), 2)
-    
-           val mapRDD: RDD[Int] = rdd.sortBy(num => num)
-           mapRDD.saveAsTextFile("sort_output")
-    
-           sc.stop()
-         }
-       }
-       /*
-       两个分区：
-       1, 2, 3
-       4, 5, 6
-       */
-       ```
+11. repartition 
+- 用法
+  * 扩大分区，底层是coalesce，参数：shuffle
+
+
+12. sortBy 根据指定规则排序
+- 代码
+```scala
+package spark.core.rdd.transform
+
+
+import org.apache.spark.rdd.RDD
+import org.apache.spark.{SparkConf, SparkContext}
+
+object sortBy {
+ def main(args: Array[String]): Unit = {
+   val sparkConf: SparkConf = new SparkConf().setMaster("local[*]").setAppName("Operator")
+   val sc = new SparkContext(sparkConf)
+
+   // TODO 算子 —— coalesce
+   val rdd: RDD[Int] = sc.makeRDD(List(1, 4, 2, 5, 3), 2)
+
+   val mapRDD: RDD[Int] = rdd.sortBy(num => num)
+   mapRDD.saveAsTextFile("sort_output")
+
+   sc.stop()
+ }
+}
+/*
+两个分区：
+1, 2, 3
+4, 5, 6
+*/
+```
 
 - 双 Value 类型
 1. intersection 
@@ -472,7 +496,7 @@ object coalesce {
 4. zip 一一对应 分区数量相同，分区内数据类型相同
     * List(1, 2, 3, 4)，List(3, 4, 5, 6)=> (1,3),(2,4),(3,5),(4,6)
 
-交集、并集和差集要求两个数据源数据类型要保持一致
+* 交集、并集和差集要求两个数据源数据类型要保持一致 *
 
 -  Key-Value 类型
   1. partitionBy
