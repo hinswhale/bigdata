@@ -375,35 +375,120 @@ val flatMapRDD = rdd.flatMap(
 ```
 
 10. distinct
-11. coalesce 缩减分区
-12. repartition shuffle 随机洗牌
-13. sortBy
+```scala
+1import org.apache.spark.rdd.RDD
+import org.apache.spark.{SparkConf, SparkContext}
 
-- K-V类型
-  1. map
-  2. mapPartitions 分区
-  2. mapPartitionsWithIndex
-  3. flatMap 扁平化
-  4. map  vs mapPartitions  mapPartitions 批处理 性能好，但数据不释放
-  5. glom 将每个分区形成一个数组
-  6. groupBy
-  7. filter
-  8. sample 采样，数据倾斜时应用
-  9. distinct
-  10. coalesce 缩减分区
-  11. repartition shuffle 随机洗牌
-  12. sortBy
-- 
-- 双V类型
-  1. union
-  2. subtract
-  2. intersection
-  3. zip 一一对应 分区数量相同，分区内数据相同
+object Spark09_RDD_Operator_Transform {
+  def main(args: Array[String]): Unit = {
+    val sparkConf: SparkConf = new SparkConf().setMaster("local[*]").setAppName("Operator")
+    val sc = new SparkContext(sparkConf)
+
+    // TODO 算子 —— distinct
+    val rdd: RDD[Int] = sc.makeRDD(List(1, 2, 3, 4, 1, 2, 3, 4))
+
+    //map(x => (x, null)).reduceByKey((x, _) => x, numPartitions).map(_._1)
+    //(1,null),(2,null),(3,null),(4,null),(1,null),(2,null),(3,null),(4,null) map
+    //(1,null),(1,null)... reduceByKey
+    //(null,null) => null...
+    //(1,null) => 1...  map
+    val distinctRDD: RDD[Int] = rdd.distinct()
+
+    println(distinctRDD.collect().mkString(","))
+    sc.stop()
+  }
+```
+11. coalesce 缩减/扩大分区
+   * 功能
+     - 缩减分区数，第二个参数shuffle
+       - 默认参数: 数据没有被打乱，可能导致`数据倾斜`
+       - 如果想让数据均衡，可以使用shuffle进行处理
+    - 扩大分区，必须shuffle，否则若不能打乱数据，相当于没有起作业
+   * 代码
+```scala
+package spark.core.rdd.transform
+
+import org.apache.spark.rdd.RDD
+import org.apache.spark.{SparkConf, SparkContext}
+
+object coalesce {
+  def main(args: Array[String]): Unit = {
+    val sparkConf: SparkConf = new SparkConf().setMaster("local[*]").setAppName("Operator")
+    val sc = new SparkContext(sparkConf)
+
+    // TODO 算子 —— coalesce
+    val rdd: RDD[Int] = sc.makeRDD(List(1, 2, 3, 4, 5, 6), 3)
+
+    //coalesce方法默认情况下不会将分区的数据打乱重新组合（shuffle）
+    //这种情况下的缩减分区可能会造成数据不均衡，出现数据的倾斜
+    //val newRDD: RDD[Int] = rdd.coalesce(2)
+
+    //如果想让数据均衡，可以使用shuffle进行处理
+    val newRDD: RDD[Int] = rdd.coalesce(2, true)
+    newRDD.saveAsTextFile("output")
+
+    sc.stop()
+  }
+}
+   ```
+
+13. repartition 
+    * 用法
+      * 扩大分区，底层是coalesce，参数：shuffle
+    1. sortBy 根据指定规则排序
+       * 代码
+        ```scala
+       package spark.core.rdd.transform
+    
+    
+       import org.apache.spark.rdd.RDD
+       import org.apache.spark.{SparkConf, SparkContext}
+    
+       object sortBy {
+         def main(args: Array[String]): Unit = {
+           val sparkConf: SparkConf = new SparkConf().setMaster("local[*]").setAppName("Operator")
+           val sc = new SparkContext(sparkConf)
+    
+           // TODO 算子 —— coalesce
+           val rdd: RDD[Int] = sc.makeRDD(List(1, 4, 2, 5, 3), 2)
+    
+           val mapRDD: RDD[Int] = rdd.sortBy(num => num)
+           mapRDD.saveAsTextFile("sort_output")
+    
+           sc.stop()
+         }
+       }
+       /*
+       两个分区：
+       1, 2, 3
+       4, 5, 6
+       */
+       ```
+
+- 双 Value 类型
+1. intersection 
+2. union 
+3. subtract 
+4. zip 一一对应 分区数量相同，分区内数据类型相同
+    * List(1, 2, 3, 4)，List(3, 4, 5, 6)=> (1,3),(2,4),(3,5),(4,6)
+
+交集、并集和差集要求两个数据源数据类型要保持一致
+
+-  Key-Value 类型
+  1. partitionBy
+  2. groupByKey
+  3. reduceByKey
+  4. aggregateByKey
+  5. foldByKey
+  6. combineByKey
+  7. sortByKey
+  8. mapValues
+  9. join
+  10. cogroup
 
 ## 4.2. Action
 
 触发任务调度和作业的执行
-
   1. reduce
   2. collect
   3. first
@@ -473,12 +558,5 @@ DAGScheduler会把DAG划分成互相依赖的多个stage。
 ## 8. 性能优化
 
 ## 9. 参考资料
-
-常见的 Java IDE 如下：
-
-- Eclipse - 一个开放源代码的、基于 Java 的可扩展开发平台。
-- NetBeans - 开放源码的 Java 集成开发环境，适用于各种客户机和 Web 应用。
-- IntelliJ IDEA - 在代码自动提示、代码分析等方面的具有很好的功能。
-- MyEclipse - 由 Genuitec 公司开发的一款商业化软件，是应用比较广泛的 Java 应用程序集成开发环境。
-- EditPlus - 如果正确配置 Java 的编译器“Javac”以及解释器“Java”后，可直接使用 EditPlus 编译执行 Java 程序。
+- [尚硅谷大数据Spark教程从入门到精通](https://www.bilibili.com/video/BV11A411L7CK) 📚
 
