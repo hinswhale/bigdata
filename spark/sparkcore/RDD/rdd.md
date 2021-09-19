@@ -6,13 +6,25 @@
 <!-- TOC depthFrom:2 depthTo:3 -->
 
 - [1. rdd是什么](#1-rdd是什么)
-- [2. 常用RDD算子](#2-常用RDD算子)
-- [3. 环境变量](#3-环境变量)
-  - [3.1. Windows](#31-windows)
-  - [3.2. Linux](#32-linux)
-- [4. 测试安装成功](#4-测试安装成功)
-- [5. 开发工具](#5-开发工具)
-- [6. 第一个程序：Hello World](#6-第一个程序hello-world)
+- [2. 创建方式](#2-创建方式)
+  - [2.1. 通过读取文件生成的](#31-通过读取文件生成的)
+  - [2.2. 通过并行化的方式创建RDD](#32-通过并行化的方式创建RDD)
+- [3. rdd并行度与分区](#3-rdd并行度与分区)
+- [4. 常用RDD算子](#4-环境变量)
+  - [4.1. Transformation](#41-Transformation)
+  - [4.2. Action](#42-Action)
+- [5. RDD依赖关系](#5-RDD依赖关系)
+  - [5.1. 宽依赖](#51-宽依赖)
+  - [5.2. 窄依赖](#52-窄依赖)
+  - [5.3. 总结](#53-总结)
+- [6. DAG的生成和划分Stage](#6-DAG的生成和划分Stage)
+  - [6.1. stage划分](#61-stage划分)
+  - [6.3. DAG/job/Action/分区/关系](#62-DAG/job/Action/分区/关系)
+- [7. 第一个程序：Hello World](#7-第一个程序hello-world)
+  - [7.1. cache](#71-cache)
+  - [7.2. checkpoint](#71-checkpoint)
+
+
 <!-- /TOC -->
 
 ## 1. rdd是什么
@@ -69,7 +81,17 @@ makeRDD方法底层调用了parallelize方法
 
 
 ## 3 rdd并行度与分区
-
+- 分区算法
+![img.png](../../pic/分区.png)
+- 偏移量
+例子：
+  最小分区：3 文件内容：
+  ```text
+    1
+    2
+    3
+   ```
+  结果： 文件1： 1 2   文件2：3  文件3： 空
 
 ## 4. 常用RDD算子
 
@@ -82,7 +104,7 @@ makeRDD方法底层调用了parallelize方法
 
 只有遇到action，才会执行 RDD 的计算(即延迟计）,只有遇到action，才会执行 RDD 的计算(即延迟计）
 
-### 3.1. Transformation
+### 4.1. Transformation
 - 单Value类型
   1. map
   2. mapPartitions 分区
@@ -117,7 +139,7 @@ makeRDD方法底层调用了parallelize方法
   2. intersection
   3. zip 一一对应 分区数量相同，分区内数据相同
 
-### 3.2. Action
+### 4.2. Action
   1. reduce
   2. collect
   3. first
@@ -128,24 +150,24 @@ makeRDD方法底层调用了parallelize方法
   8. countByKey
   9. save
 
-## 3. RDD依赖关系
+## 5. RDD依赖关系
 
 是否shuffle
 ![img.png](../../pic/依赖关系.png)
-### 3.1. 宽依赖
+### 5.1. 宽依赖
 包含Shuffle过程，无法实现流水线方式处理
 - 父 RDD 的分区被不止一个子 RDD 的分区依赖
 - 具有宽依赖的 transformations 包括: sort, reduceByKey, groupByKey, join, 和调用rePartition函数的任何操作.
 
-### 3.2. 窄依赖
+### 5.2. 窄依赖
 可以实现流水线优化
 - 父 RDD 中的每个分区最多只有一个子分区, 形象的比喻为独生子女
 - 可以在任何的的一个分区上单独执行, 而不需要其他分区的任何信息.
 
-### 3.3 总结
+### 5.3 总结
 `shuffle` 操作是 spark 中最耗时的操作,应尽量避免不必要的 `shuffle`.
 
-## 4. DAG的生成和划分Stage
+## 6. DAG的生成和划分Stage
 ![img.png](../../pic/stage.png)
 
 划分stage的依据就是RDD之间的宽窄依赖
@@ -156,11 +178,11 @@ DAGScheduler会把DAG划分成互相依赖的多个stage。
 核心算法：回溯算法 从后往前回溯/反向解析，遇到窄依赖加入本Stage，遇见宽依赖进行Stage切分。
 
 
-### 4.1 stage划分
+### 6.1 stage划分
 - 对于窄依赖，partition的转换处理在Stage中完成计算。
 - 对于宽依赖，由于有Shuffle的存在，只能在parent RDD处理完成后，才能开始接下来的计算，因此宽依赖是划分Stage的依据。
 
-### 4.2 DAG job Action 分区 关系
+### 6.2 DAG/job/Action/分区/关系
 ![img.png](../../pic/stage分析.png)
 
 
@@ -178,15 +200,15 @@ DAGScheduler会把DAG划分成互相依赖的多个stage。
 
 
 
-## 5. 
-### 缓存
+## 7. 持久化
+### cache
 - 将该 RDD 缓存起来，该 RDD 只有在第一次计算的时候会根据血缘关系得到分区的数据，在后续其他地方用到该 RDD 的时候，会直接从缓存处取而不用再根据血缘关系计算，这样就加速后期的重用
 ### checkpoint
 
 
-## 5. 第一个程序：Hello World
+## 8. 第一个程序：Hello World
 
-## 6. 参考资料
+## 9. 参考资料
 
 常见的 Java IDE 如下：
 
