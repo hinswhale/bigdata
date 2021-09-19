@@ -187,7 +187,7 @@ object mapPartitions {
 
 ```
 
-4. mapPartitionsWithIndex 索引号
+3. mapPartitionsWithIndex 索引号
 
 * 语法
 
@@ -198,7 +198,7 @@ object mapPartitions {
 * 示例代码 取某个分区数据
 
 ```scala
-import package spark.core.rdd.transform
+package spark.core.rdd.transform
 
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
@@ -224,18 +224,161 @@ object mapPartitionsWithIndex {
     sc.stop()
 
   }
-}```
+}
+```
      
-  6. flatMap 扁平化
-  7. map  vs mapPartitions  mapPartitions 批处理 性能好，但数据不释放
-  8. glom 将每个分区形成一个数组
-  9. groupBy
-  10. filter
-  11. sample 采样，数据倾斜时应用
-  12. distinct
-  13. coalesce 缩减分区
-  14. repartition shuffle 随机洗牌
-  15. sortBy
+4. flatMap 扁平化
+   * 功能 扁平化 
+       * 如[[1, 2] [3, 4]] = > [1, 2, 3, 4]
+       * 拆分单词 "Hello Scala", "Hello Spark" => Hello  Scala Hello Spark
+  
+   * 代码
+
+```scala
+/**
+[1, 2] [3, 4] = > [1, 2, 3, 4]
+/**
+package spark.core.rdd.transform
+
+import org.apache.spark.rdd.RDD
+import org.apache.spark.{SparkConf, SparkContext}
+
+object flatMap {
+  def main(args: Array[String]): Unit = {
+    val sparkConf: SparkConf = new SparkConf().setMaster("local[*]").setAppName("Operator")
+    val sc = new SparkContext(sparkConf)
+
+    val rdd: RDD[List[Int]] = sc.makeRDD(List(List(1, 2), List(3, 4)), 2)
+    val flatrdd: RDD[Int] = rdd.flatMap(
+      List => {List}
+    )
+
+    flatrdd.collect().foreach(println)
+
+    sc.stop()
+
+  }
+}
+  ```
+
+* ～模式匹配～
+```scala
+val rdd = sc.makeRDD(List(List(1, 2), 3, List(4, 5)))
+
+val flatMapRDD = rdd.flatMap(
+  data => {
+    data match {
+      case list: List[_] => list
+      case dat => List(dat)
+    }
+  }
+)
+```
+5. glom 将每个分区形成一个数组
+   * 用法
+     ```RDD[Array[T]] ```
+   * 功能 
+     * 将每个分区形成一个数组
+     * 分区个数不变
+   * 代码
+   
+   打印各分区数据
+
+   ```scala
+    val rdd: RDD[Int] = sc.makeRDD(List(1, 2, 3, 4), 2)
+    val glomRDD: RDD[Array[Int]] = rdd.glom(
+    )
+
+    glomRDD.foreach(arr => println(arr.mkString(",")))
+   /*
+    1,2
+    3,4
+   */
+   ```
+   求各分区最大值之和
+
+    ```scala
+    val rdd: RDD[Int] = sc.makeRDD(List(1, 2, 3, 4), 2)
+    val glomRDD: RDD[Array[Int]] = rdd.glom()
+    val maxRDD: RDD[Int] = glomRDD.map(array => {
+      array.max
+    })
+    println(maxRDD.collect().sum)
+    // 结果：6
+    ```
+  
+6. groupBy
+   * 用法
+     ```groupBy(func) RDD[(K, Iterable[T])```
+   * 功能 
+     * 按照func的返回值做为key进行分组
+     * shuffle
+     
+   * 代码
+   
+    ```scala
+    val rdd = sc.makeRDD(List(1, 2, 3, 4))
+    val groupRDD: RDD[(Int, Iterable[Int])] = rdd.groupBy((_%2)
+    groupRDD.collect().foreach(println)
+    ```
+
+7. filter
+   * 用法
+     `````
+   * 功能 
+     * 过滤
+     * 产生数据倾斜 分区各区数据差别较大
+
+8. sample 随机采样
+   * 用法
+    sample算子需要传递三个参数
+     * 第一个参数  抽取数据后是否将数据返回 
+       * true（返回：（泊松算法）） false（不返回：（伯努利算法））
+     * 第二个参数 每个数据出现概率
+        * 如果抽取不放回的场合：数据源中每条数据被抽取的概率,基准值的概念
+        * 如果抽取放回的场合：表示数据源中的每条数据被抽取的可能次数
+     * 第三个参数 随机算法种子 如果不传，则使用当前时间
+   * 功能 
+     * 数据倾斜时应用
+
+  * 代码
+
+  ```scala
+  import org.apache.spark.rdd.RDD
+  import org.apache.spark.{SparkConf, SparkContext}
+  
+  object Spark08_RDD_Operator_Transform {
+    def main(args: Array[String]): Unit = {
+      val sparkConf: SparkConf = new SparkConf().setMaster("local[*]").setAppName("Operator")
+      val sc = new SparkContext(sparkConf)
+  
+      // TODO 算子 —— sample
+      val rdd: RDD[Int] = sc.makeRDD(List(1, 2, 3, 4, 5, 6, 7, 8, 9, 10))
+  
+      /*val sampleRDD: RDD[Int] = rdd.sample(
+        false,
+        0.4
+        //1
+      )*/
+  
+      val sampleRDD: RDD[Int] = rdd.sample(
+        true,
+        2
+        //1
+      )
+  
+      println(sampleRDD.collect().mkString(","))
+      sc.stop()
+    }
+  }
+
+```
+
+10. distinct
+11. coalesce 缩减分区
+12. repartition shuffle 随机洗牌
+13. sortBy
+
 - K-V类型
   1. map
   2. mapPartitions 分区
@@ -250,6 +393,7 @@ object mapPartitionsWithIndex {
   10. coalesce 缩减分区
   11. repartition shuffle 随机洗牌
   12. sortBy
+- 
 - 双V类型
   1. union
   2. subtract
