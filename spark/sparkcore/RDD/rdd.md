@@ -7,28 +7,30 @@
 
 - [1. rdd是什么](#1-rdd是什么)
 - [2. 创建方式](#2-创建方式)
-  - [2.1. 通过读取文件生成的](#31-通过读取文件生成的)
-  - [2.2. 通过并行化的方式创建RDD](#32-通过并行化的方式创建RDD)
+    - [2.1. 通过读取文件生成的](#31-通过读取文件生成的)
+    - [2.2. 通过并行化的方式创建RDD](#32-通过并行化的方式创建RDD)
 - [3. rdd并行度与分区](#3-rdd并行度与分区)
 - [4. 常用RDD算子](#4-环境变量)
-  - [4.1. Transformation](#41-Transformation)
-  - [4.2. Action](#42-Action)
+    - [4.1. Transformation](#41-Transformation)
+    - [4.2. Action](#42-Action)
 - [5. RDD依赖关系](#5-RDD依赖关系)
-  - [5.1. 宽依赖](#51-宽依赖)
-  - [5.2. 窄依赖](#52-窄依赖)
-  - [5.3. 总结](#53-总结)
+    - [5.1. 宽依赖](#51-宽依赖)
+    - [5.2. 窄依赖](#52-窄依赖)
+    - [5.3. 总结](#53-总结)
 - [6. DAG的生成和划分Stage](#6-DAG的生成和划分Stage)
-  - [6.1. stage划分](#61-stage划分)
-  - [6.3. DAG/job/Action/分区/关系](#62-DAG/job/Action/分区/关系)
-- [7. 第一个程序：Hello World](#7-第一个程序hello-world)
-  - [7.1. cache](#71-cache)
-  - [7.2. checkpoint](#71-checkpoint)
-
+    - [6.1. stage划分](#61-stage划分)
+    - [6.3. DAG/job/Action/分区/关系](#62-DAG/job/Action/分区/关系)
+- [7. 持久化/缓存](#7-持久化/缓存)
+    - [7.1. cache](#71-cache)
+    - [7.2. checkpoint](#71-checkpoint)
+- [8. 性能优化](#8-性能优化)
 
 <!-- /TOC -->
 
-## 1. rdd是什么
+# 1. rdd是什么
+
 RDD(Resilient Distributed Dataset) 弹性分布式数据集
+
 ### 定义
 
 - 数据集
@@ -47,53 +49,61 @@ RDD(Resilient Distributed Dataset) 弹性分布式数据集
         - 数据不同，计算逻辑相同
     - 容错
         - 重试处理
+
 ### 特性：
-  * 只读   - 只能通过算子创建新的RDD，原RDD未受影响【算子】
-  * 分区   -  每个 RDD 被切分成多个分区(partition), 每个分区可能会在集群中不同的节点上进行计算
-  * 依赖关系可并行   - DAG，划分并行
-  * 缓存&持久化
 
-## 2. 创建方式
+* 只读 - 只能通过算子创建新的RDD，原RDD未受影响【算子】
+* 分区 - 每个 RDD 被切分成多个分区(partition), 每个分区可能会在集群中不同的节点上进行计算
+* 依赖关系可并行 - DAG，划分并行
+* 缓存&持久化
 
-### 2.1. 通过读取文件生成的
+# 2. 创建方式
+
+## 2.1. 通过读取文件生成的
 
 - 以行为单位，读取数据都是字符串
+
 ```scala
 val rdd1 = sc.textFile("hdfs://node1:8020/wordcount/input/words.txt")
 ```
+
 - 以文件为单位
+
 ```scala
 val rdd1 = sc.whoTextFiles("hdfs://node1:8020/wordcount/input/words.txt")
 ```
 
-### 2.2. 通过并行化的方式创建RDD
+## 2.2. 通过并行化的方式创建RDD
 
 ```scala
 num_rdd = sc.parallelize([1,2,3]) //parallelize 并行
 ```
+
 或
+
 ```scala
 val rdd = sc.makeRDD(List(1, 2, 3, 4), 2) // 2为分区，不写会有默认值
 ```
+
 makeRDD方法底层调用了parallelize方法
 
-### 2.3. 其他方式
+## 2.3. 其他方式
 
+# 3 rdd并行度与分区
 
-## 3 rdd并行度与分区
-- 分区算法
+## 分区算法
+
 ![img.png](../../pic/分区.png)
-- 偏移量
-例子：
-  最小分区：3 文件内容：
+
+- 偏移量 例子： 最小分区：3 文件内容：
   ```text
     1
     2
     3
    ```
-  结果： 文件1： 1 2   文件2：3  文件3： 空
+  结果： 文件1： 1 2 文件2：3 文件3： 空
 
-## 4. 常用RDD算子
+# 4. 常用RDD算子
 
 **`惰性求值`**
 
@@ -104,21 +114,127 @@ makeRDD方法底层调用了parallelize方法
 
 只有遇到action，才会执行 RDD 的计算(即延迟计）,只有遇到action，才会执行 RDD 的计算(即延迟计）
 
-### 4.1. Transformation
-- 单Value类型
-  1. map
-  2. mapPartitions 分区
-  2. mapPartitionsWithIndex
-  3. flatMap 扁平化
-  4. map  vs mapPartitions  mapPartitions 批处理 性能好，但数据不释放
-  5. glom 将每个分区形成一个数组
-  6. groupBy
-  7. filter
-  8. sample 采样，数据倾斜时应用
-  9. distinct
-  10. coalesce 缩减分区
-  11. repartition shuffle 随机洗牌
-  12. sortBy
+## 4.1. Transformation
+
+将旧的RDD包装成新的RDD
+
+### 单Value类型
+
+1. map
+
+* 一个分区 数据顺序执行
+* 不同分区间 无序
+
+```
+scala > val rdd1 = sc.parallelize(1 to 10)
+rdd1: org.apache.spark.rdd.RDD[Int] = ParallelCollectionRDD[0] at parallelize at <console>:24
+// 得到一个新的 RDD, 但是这个 RDD 中的元素并不是立即计算出来的
+scala> val rdd2 = rdd1.map(_ * 2, numslice=2) //numslice 分区
+rdd2: org.apache.spark.rdd.RDD[Int] = MapPartitionsRDD[1] at map at
+<console>:26
+
+// 开始计算 rdd2 中的元素, 并把计算后的结果传递给驱动程序
+scala> rdd2.collect
+res0: Array[Int] = Array(2, 4, 6, 8, 10, 12, 14, 16, 18, 20)
+  ```  
+
+2. mapPartitions 考虑分区
+
+* 语法
+
+  ```mapPartitions(func) Iterator<T> => Iterator<U>```
+
+* 可应用场景 a. 每个分区最大值或对分区数据做批处理
+
+* 🏠`map vs mapPartitions`
+    * mapPartitions 性能更高，每个分区一次拿到所有数据
+
+      e.g. 假设有N个元素，有M个分区，那么map的函数的将被调用N次, 而mapPartitions被调用M次,一个函数一次处理所有分区。
+    * mapPartitions 内存有限时不推荐 处理完的数据不会被释放，存在对象引用，数据量较大的时候，容易内存溢出，此时应考虑map
+    * map 转换后数量不变，mapPartitions可以改变
+
+```scala
+package spark.core.rdd.transform
+
+import org.apache.spark.rdd.RDD
+import org.apache.spark.{SparkConf, SparkContext}
+
+object mapPartitions {
+  def main(args: Array[String]): Unit = {
+    val sparkConf: SparkConf = new SparkConf().setMaster("local[*]").setAppName("Operator")
+    val sc = new SparkContext(sparkConf)
+
+    val rdd: RDD[Int] = sc.makeRDD(List(1, 2, 3, 4), 2)
+//    val mpRDD: RDD[Int] = rdd.mapPartitions(
+//      iter => {
+//        println(">>>>")
+//        iter.map(_ * 2)
+//      }
+//    )
+
+    // 最大值
+    val mpRDD: RDD[Int] = rdd.mapPartitions(
+      iter => {
+        List(iter.max).iterator
+      }
+    )
+
+    mpRDD.collect().foreach(println)
+
+    sc.stop()
+  }
+}
+
+```
+
+4. mapPartitionsWithIndex 索引号
+
+* 语法
+
+  ``` mapPartitionsWithIndex(func) (Int, Iterator<T>) => Iterator<U>```
+* 功能
+    * 多提供一个Int值来表示分区的索引
+    * 分区数的确定, 和对数组中的元素如何进行分区
+* 示例代码 取某个分区数据
+
+  ```package spark.core.rdd.transform
+
+import org.apache.spark.rdd.RDD
+import org.apache.spark.{SparkConf, SparkContext}
+
+object mapPartitionsWithIndex {
+  def main(args: Array[String]): Unit = {
+    val sparkConf: SparkConf = new SparkConf().setMaster("local[*]").setAppName("Operator")
+    val sc = new SparkContext(sparkConf)
+
+    val rdd: RDD[Int] = sc.makeRDD(List(1, 2, 3, 4), 2)
+    val mpiRDD: RDD[Int] = rdd.mapPartitionsWithIndex(
+      (index, iter) => {
+        if (index == 1) {
+          iter
+        } else {
+          Nil.iterator
+        }
+      }
+    )
+
+    mpiRDD.collect().foreach(println)
+
+    sc.stop()
+
+  }
+}```
+     
+  6. flatMap 扁平化
+  7. map  vs mapPartitions  mapPartitions 批处理 性能好，但数据不释放
+  8. glom 将每个分区形成一个数组
+  9. groupBy
+  10. filter
+  11. sample 采样，数据倾斜时应用
+  12. distinct
+  13. coalesce 缩减分区
+  14. repartition shuffle 随机洗牌
+  15. sortBy
 - K-V类型
   1. map
   2. mapPartitions 分区
@@ -139,7 +255,10 @@ makeRDD方法底层调用了parallelize方法
   2. intersection
   3. zip 一一对应 分区数量相同，分区内数据相同
 
-### 4.2. Action
+## 4.2. Action
+
+触发任务调度和作业的执行
+
   1. reduce
   2. collect
   3. first
@@ -150,24 +269,24 @@ makeRDD方法底层调用了parallelize方法
   8. countByKey
   9. save
 
-## 5. RDD依赖关系
+# 5. RDD依赖关系
 
 是否shuffle
 ![img.png](../../pic/依赖关系.png)
-### 5.1. 宽依赖
+## 5.1. 宽依赖
 包含Shuffle过程，无法实现流水线方式处理
 - 父 RDD 的分区被不止一个子 RDD 的分区依赖
 - 具有宽依赖的 transformations 包括: sort, reduceByKey, groupByKey, join, 和调用rePartition函数的任何操作.
 
-### 5.2. 窄依赖
+## 5.2. 窄依赖
 可以实现流水线优化
 - 父 RDD 中的每个分区最多只有一个子分区, 形象的比喻为独生子女
 - 可以在任何的的一个分区上单独执行, 而不需要其他分区的任何信息.
 
-### 5.3 总结
+## 5.3 总结
 `shuffle` 操作是 spark 中最耗时的操作,应尽量避免不必要的 `shuffle`.
 
-## 6. DAG的生成和划分Stage
+# 6. DAG的生成和划分Stage
 ![img.png](../../pic/stage.png)
 
 划分stage的依据就是RDD之间的宽窄依赖
@@ -178,19 +297,19 @@ DAGScheduler会把DAG划分成互相依赖的多个stage。
 核心算法：回溯算法 从后往前回溯/反向解析，遇到窄依赖加入本Stage，遇见宽依赖进行Stage切分。
 
 
-### 6.1 stage划分
+## 6.1 stage划分
 - 对于窄依赖，partition的转换处理在Stage中完成计算。
 - 对于宽依赖，由于有Shuffle的存在，只能在parent RDD处理完成后，才能开始接下来的计算，因此宽依赖是划分Stage的依据。
 
-### 6.2 DAG/job/Action/分区/关系
+## 6.2 DAG/job/Action/分区/关系
 ![img.png](../../pic/stage分析.png)
 
 
 * 概念
-  - DAG
-  - job 
+  - Application
+  - job  执行一个行动操作，就会执行sc.runJob(...)
   - stages 
-  - tasks 最小执行单位  每一个 task 表现为一个本地计算
+  - tasks 最小执行单位  一个分区划一个Task, 每一个 task 表现为一个本地计算
 
 * 联系⚠️
   - - Application->Job->Stage-> Task 1对多
@@ -200,13 +319,13 @@ DAGScheduler会把DAG划分成互相依赖的多个stage。
 
 
 
-## 7. 持久化
-### cache
+# 7. 持久化/缓存
+## cache
 - 将该 RDD 缓存起来，该 RDD 只有在第一次计算的时候会根据血缘关系得到分区的数据，在后续其他地方用到该 RDD 的时候，会直接从缓存处取而不用再根据血缘关系计算，这样就加速后期的重用
-### checkpoint
+## checkpoint
 
 
-## 8. 第一个程序：Hello World
+## 8. 性能优化
 
 ## 9. 参考资料
 
