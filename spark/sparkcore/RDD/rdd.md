@@ -22,12 +22,11 @@
     - [5.3. 总结](#53-总结)
 - [6. 任务划分](#6-任务划分)
     - [6.1. stage划分](#61-stage划分)
-    - [6.3. DAG/job/Action/分区/关系](#62-DAG/job/Action/分区/关系)
+    - [6.2. DAG/job/Action/分区/关系](#62-DAG/job/Action/分区/关系)
 - [7. 持久化](#7-持久化)
     - [7.1. persist&cache](#71-persist&cache)
     - [7.2. checkpoint](#71-checkpoint)
 - [8. 序列化](#8-序列化)
-- [9. 性能优化](#9-性能优化)
 
 <!-- /TOC -->
 
