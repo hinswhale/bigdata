@@ -21,12 +21,12 @@
     - [5.2. 窄依赖](#52-窄依赖)
     - [5.3. 总结](#53-总结)
 - [6. 任务划分](#6-任务划分)
-    - [6.1. stage划分依据](#61-stage划分依据)
-    - [6.2. 任务划分涉及的概念](#62-任务划分涉及的概念)
+    - [6.1. stage划分](#61-stage划分)
+    - [6.2. DAG vs job vs Action vs 分区 关系](#62-DAG-job-Action-分区-关系)
 - [7. 持久化](#7-持久化)
     - [7.1. persist与cache](#71-persist与cache)
     - [7.2. checkpoint](#72-checkpoint)
-    - [7.3. cache vs persist vs checkpoint](#73-cache vs persist vs checkpoint)
+    - [7.3. cache vs persist vs checkpoint](#73-cache-vs-persist-vs-checkpoint)
 - [8. 序列化](#8-序列化)
 
 <!-- /TOC -->
