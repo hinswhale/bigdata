@@ -12,6 +12,9 @@
 - [3. rdd并行度与分区](#3-rdd并行度与分区)
 - [4. 常用RDD算子](#4-环境变量)
     - [4.1. Transformation](#41-Transformation)
+       - [单Value类型](#411-单Value类型)
+       - [双Value类型](#412-双Value类型)
+       - [Key-Value类型](#413-Key-Value类型)
     - [4.2. Action](#42-Action)
 - [5. RDD依赖关系](#5-RDD依赖关系)
     - [5.1. 宽依赖](#51-宽依赖)
@@ -489,7 +492,7 @@ object sortBy {
 */
 ```
 
-- 双 Value 类型
+### 双Value类型
 1. intersection 
 2. union 
 3. subtract 
@@ -498,7 +501,7 @@ object sortBy {
 
 * 交集、并集和差集要求两个数据源数据类型要保持一致 *
 
--  Key-Value 类型
+### Key-Value类型
   1. partitionBy
  - 功能
    - 根据partitioner对数据重新分区 对数据重新分区，数据打乱
