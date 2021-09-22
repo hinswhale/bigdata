@@ -1134,17 +1134,17 @@ DAGScheduler会把DAG划分成互相依赖的多个stage。
     resRDD1.collect().foreach(println)
 ```
 
-7.1 persist与cache
+## 7.1 persist与cache
 ![img.png](../../pic/持久化3.png)
 
 
 ![img.png](../../pic/persist.png)
-7.2 checkpoint
+## 7.2 checkpoint
 - 需要落盘，需指定检查点保存路径
 - 检查点路径保存的文件，当作业执行完毕，不会被删除
 - 一般保存在分布式存储系统，如HDFS
 
-7.3 cache vs persist vs checkpoint
+## 7.3 cache vs persist vs checkpoint
  * `cache`:将数据临时存储在内存中进行数据重用
    * 会在血缘关系中添加新的依赖
  * `persist`：将数据临时存储在磁盘文件中进行数据重用
