@@ -1078,11 +1078,11 @@ DAGScheduler会把DAG划分成互相依赖的多个stage。
 核心算法：回溯算法 从后往前回溯/反向解析，遇到窄依赖加入本Stage，遇见宽依赖进行Stage切分。
 
 
-## 6.1 stage划分依据
+## 6.1 stage划分
 - 对于窄依赖，partition的转换处理在Stage中完成计算。
 - 对于宽依赖，由于有Shuffle的存在，只能在parent RDD处理完成后，才能开始接下来的计算，因此宽依赖是划分Stage的依据。
 
-## 6.2 任务划分涉及的概念
+## 6.2 DAG job Action 分区 关系
 ![img.png](../../pic/stage分析.png)
 
 * 概念
