@@ -23,10 +23,11 @@
 - [6. DAG的生成和划分Stage](#6-DAG的生成和划分Stage)
     - [6.1. stage划分](#61-stage划分)
     - [6.3. DAG/job/Action/分区/关系](#62-DAG/job/Action/分区/关系)
-- [7. 持久化/缓存](#7-持久化/缓存)
+- [7. 持久化](#7-持久化)
     - [7.1. cache](#71-cache)
     - [7.2. checkpoint](#71-checkpoint)
-- [8. 性能优化](#8-性能优化)
+- [8. 序列化](#8-序列化)
+- [9. 性能优化](#9-性能优化)
 
 <!-- /TOC -->
 
@@ -951,47 +952,6 @@ object reduceByKey_Transform {
     */
  ```
 
-
-- 序列化问题：
-   ![img.png](../../pic/foreach.png)
-   
-   User 在网络中传递
-```scala
-package spark.core.rdd.action
-
-import org.apache.spark.rdd.RDD
-import org.apache.spark.{SparkConf, SparkContext}
-
-object foreach_1 {
-  def main(args: Array[String]): Unit = {
-    val sparkConf: SparkConf = new SparkConf().setMaster("local[*]").setAppName("Operator")
-    val sc = new SparkContext(sparkConf)
-
-    //val rdd: RDD[Int] = sc.makeRDD(List(1, 2, 3, 4))
-    val rdd: RDD[Int] = sc.makeRDD(List())
-
-    val user = new User
-    //SparkException: Task not serializable
-    //NotSerializableException: com.ustb.ly.spark.core.rdd.operator.action.Spark07_RDD_Operator_Action$User
-
-    //RDD算子中传递的函数是包含闭包操作，那么就会进行检测功能
-    //闭包检测功能
-    rdd.foreach(num => {
-      println(user.age + num)
-    })
-    sc.stop()
-  }
-
-  //class User extends Serializable {   ------ 正确方法
-  //样例类在编译时，会自动混入序列化特质（实现可序列化接口）
-  //case class User() {                 ------ 正确方法
-  class User {                          ------ 错误方法
-    var age: Int = 30
-  }
-
-}
-
-```
  10. countByKey & countByValue
    ```scala
     val rdd: RDD[Int] = sc.makeRDD(List(1, 1, 1, 4),2)
@@ -1008,8 +968,9 @@ object foreach_1 {
   ```
  11. save & saveAsTextFile & saveAsObjectFile & saveAsSequenceFile
      - saveAsSequenceFile方法要求数据的格式必须为K-V类型
+     
 
-
+  - 例子1
 ```scala
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
@@ -1052,7 +1013,7 @@ object reduce {
   }
 }
 ```
-
+ - 例子2
 ```scala
     val rdd: RDD[Int] = sc.makeRDD(List(1, 2, 3, 4), 2)
     //TODO 行动算子
@@ -1071,14 +1032,29 @@ object reduce {
 
 # 5. RDD依赖关系
 
-是否shuffle
+ * RDD不会保存数据， 为了容错。保存RDD血缘关系，将数据源重新读取进行计算
+ * rddxx.toDebugString 血缘关系
+ * rddxx.dependencies 依赖关系
+    ```shell
+   List(org.apache.spark.OneToOneDependency@29138d3a)
+    *****************************
+    List(org.apache.spark.OneToOneDependency@10afe71a)
+    *****************************
+    List(org.apache.spark.OneToOneDependency@9fc9f91)
+    *****************************
+    List(org.apache.spark.ShuffleDependency@135a8c6f)
+ 
+   ```
+
+
 ![img.png](../../pic/依赖关系.png)
-## 5.1. 宽依赖
+## 5.1. 宽依赖【Shuffle， 多生】
 包含Shuffle过程，无法实现流水线方式处理
 - 父 RDD 的分区被不止一个子 RDD 的分区依赖
 - 具有宽依赖的 transformations 包括: sort, reduceByKey, groupByKey, join, 和调用rePartition函数的任何操作.
-
-## 5.2. 窄依赖
+- task 数量增加，分stage
+- 需要等待
+## 5.2. 窄依赖【一对一，独生】
 可以实现流水线优化
 - 父 RDD 中的每个分区最多只有一个子分区, 形象的比喻为独生子女
 - 可以在任何的的一个分区上单独执行, 而不需要其他分区的任何信息.
@@ -1119,13 +1095,109 @@ DAGScheduler会把DAG划分成互相依赖的多个stage。
 
 
 
-# 7. 持久化/缓存
+# 7. 持久化
 ## cache
 - 将该 RDD 缓存起来，该 RDD 只有在第一次计算的时候会根据血缘关系得到分区的数据，在后续其他地方用到该 RDD 的时候，会直接从缓存处取而不用再根据血缘关系计算，这样就加速后期的重用
 ## checkpoint
 
 
-## 8. 性能优化
+## 8. 序列化
+- 序列化问题：
+
+  - 闭包检测
+    * 算子以外的代码在driver执行，算子里代码在excutor执行
+    * 算子内经常用到算子外的数据，形成闭包效果 。当RDD算子中传递的函数是包含闭包操作，那么就会进行检测功能
+    * 类的构造参数其实是类的属性, 构造参数需要进行闭包检测，其实就等同于类进行闭包检测
+   
+
+  - 例子1 算子闭包检测
+
+   User 在网络中传递，driver创建，excuter计算
+
+   ![img.png](../../pic/foreach.png)
+
+```scala
+package spark.core.rdd.action
+
+import org.apache.spark.rdd.RDD
+import org.apache.spark.{SparkConf, SparkContext}
+
+object foreach_1 {
+  def main(args: Array[String]): Unit = {
+    val sparkConf: SparkConf = new SparkConf().setMaster("local[*]").setAppName("Operator")
+    val sc = new SparkContext(sparkConf)
+
+    //val rdd: RDD[Int] = sc.makeRDD(List(1, 2, 3, 4))
+    val rdd: RDD[Int] = sc.makeRDD(List())
+
+    val user = new User
+    //SparkException: Task not serializable
+    //NotSerializableException: com.ustb.ly.spark.core.rdd.operator.action.Spark07_RDD_Operator_Action$User
+
+    //RDD算子中传递的函数是包含闭包操作，那么就会进行检测功能
+    //闭包检测功能
+    rdd.foreach(num => {
+      println(user.age + num)
+    })
+    sc.stop()
+  }
+
+  //class User extends Serializable {   ------ 正确方法
+  //样例类在编译时，会自动混入序列化特质（实现可序列化接口）
+  //case class User() {                 ------ 正确方法
+  class User {                          ------ 错误方法
+    var age: Int = 30
+  }
+
+} 
+```
+   - 例子2  类的构造参数
+```scala
+// getMatch1 报错  getMatch2 正确
+    
+import org.apache.spark.{SparkConf, SparkContext}
+import org.apache.spark.rdd.RDD
+
+object Serial {
+  def main(args: Array[String]): Unit = {
+    val sparkConf = new SparkConf().setMaster("local").setAppName("Serial")
+    val sc = new SparkContext(sparkConf)
+
+    val rdd: RDD[String] = sc.makeRDD(Array("hello world", "hello spark", "hive", "atguigu"))
+
+    val search = new Search("h")
+
+    //search.getMatch1(rdd).collect().foreach(println)
+    search.getMatch2(rdd).collect().foreach(println)
+
+    sc.stop()
+  }
+  // 查询对象
+  // 类的构造参数其实是类的属性, 构造参数需要进行闭包检测，其实就等同于类进行闭包检测
+  class Search(query: String) {
+
+    def isMatch(s: String): Boolean = {
+      s.contains(this.query)
+    }
+
+    // 函数序列化案例
+    def getMatch1(rdd: RDD[String]): RDD[String] = {
+      rdd.filter(isMatch)
+    }
+
+    // 属性序列化案例
+    def getMatch2(rdd: RDD[String]): RDD[String] = {
+      val s = query // s是字符串
+      rdd.filter(x => x.contains(s))
+    }
+  }
+
+}
+
+```
+
+
+- Kryo 序列化框架
 
 ## 9. 参考资料
 - [尚硅谷大数据Spark教程从入门到精通](https://www.bilibili.com/video/BV11A411L7CK) 📚
