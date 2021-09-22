@@ -1,5 +1,5 @@
 # 📖 RDD
-## [RDD基础](basics)
+## [RDD基础](RDD)
 
 - [spark 架构设计](basics/spark-core.md)
 
@@ -7,9 +7,9 @@
 
 - [spark 核心概念](basics/spark-core.md)
   - [Spark Driver](basics/spark-core.md)
-## [常用RDD算子](basics)
-  - [转换算子](basics)
-  - [行动算子](basics)
+## [常用RDD算子](RDD/rdd.md)
+  - [转换算子](RDD/rdd.md)
+  - [行动算子](RDD/rdd.md)
 ## [RDD函数传递](basics)
 ## [RDD依赖关系](basics)
   - [窄依赖](basics)
@@ -24,7 +24,8 @@
 
 ## [RDD编程进阶](basics)
 ### 累加器
--  分布式共享只写变量
+- 分布式共享只写变量
+
 ### 广播变量
 - 分布式共享只读变量
 ## [spark性能优化](basics)
