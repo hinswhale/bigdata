@@ -22,10 +22,11 @@
     - [5.3. 总结](#53-总结)
 - [6. 任务划分](#6-任务划分)
     - [6.1. stage划分](#61-stage划分)
-    - [6.2. DAG/job/Action/分区/关系](#62-DAG/job/Action/分区/关系)
+    - [6.2. DAG&job&Action&分区&关系](#62-DAG&job&Action&分区&关系)
 - [7. 持久化](#7-持久化)
     - [7.1. persist与cache](#71-persist与cache)
     - [7.2. checkpoint](#72-checkpoint)
+    - [7.3. cache vs persist vs checkpoint](#73-cache vs persist vs checkpoint)
 - [8. 序列化](#8-序列化)
 
 <!-- /TOC -->
@@ -1081,7 +1082,7 @@ DAGScheduler会把DAG划分成互相依赖的多个stage。
 - 对于窄依赖，partition的转换处理在Stage中完成计算。
 - 对于宽依赖，由于有Shuffle的存在，只能在parent RDD处理完成后，才能开始接下来的计算，因此宽依赖是划分Stage的依据。
 
-## 6.2 DAG/job/Action/分区/关系
+## 6.2 DAG&job&Action&分区&关系
 ![img.png](../../pic/stage分析.png)
 
 
@@ -1133,17 +1134,17 @@ DAGScheduler会把DAG划分成互相依赖的多个stage。
     resRDD1.collect().foreach(println)
 ```
 
-## persist与cache
+7.1 persist与cache
 ![img.png](../../pic/持久化3.png)
 
 
 ![img.png](../../pic/persist.png)
-## checkpoint
+7.2 checkpoint
 - 需要落盘，需指定检查点保存路径
 - 检查点路径保存的文件，当作业执行完毕，不会被删除
 - 一般保存在分布式存储系统，如HDFS
 
-## cache vs persist vs checkpoint
+7.3 cache vs persist vs checkpoint
  * `cache`:将数据临时存储在内存中进行数据重用
    * 会在血缘关系中添加新的依赖
  * `persist`：将数据临时存储在磁盘文件中进行数据重用
