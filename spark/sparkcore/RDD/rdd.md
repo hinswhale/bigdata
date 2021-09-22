@@ -113,6 +113,15 @@ makeRDD方法底层调用了parallelize方法
 
 # 4. 常用RDD算子
 
+```
+     算子：Operator(操作)
+        RDD的方法和Scala集合对象的方法不一样
+        集合对象的方法都是在同一个节点的内存中完成的
+        RDD的方法可以将计算逻辑发送到Executor端（分布式节点）执行
+        为了区分不同的处理效果，所以将RDD的方法称为算子
+        RDD的方法外部的操作都是在Driver端执行的，而方法内部的逻辑代码是在Executor端执行的
+```
+
 **`惰性求值`**
 
 - Transformations ：从一个已知的 RDD 中创建出来一个新的 RDD
@@ -896,17 +905,169 @@ object reduceByKey_Transform {
 
 ## 4.2. Action
 
-触发任务调度和作业的执行
+ * 触发作业的执行 
+ * 底层代码调用的是环境对象的runJob方法
+ * 底层代码会创建ActiveJob，并提交执行
 
-  1. reduce
-  2. collect
-  3. first
-  4. take
-  5. takeOrdered
-  6. aggregate 分区间初始值
-  7. foreach
-  8. countByKey
-  9. save
+ 1. reduce
+ 2. collect
+   
+    `方法会将不同分区的数据按照分区顺序采集到Driver端的内存中，形成数组`
+ 3. count
+ 4. first
+ 5. take
+   
+    `获取前N个数据`
+ 6. takeOrdered
+    
+     `数据排序后，取前N个数据`
+ 7. aggregate 分区间初始值
+ - aggregateByKey vs aggregate
+   * aggregateByKey：初始值只会参与分区内的计算  13 + 17 = 30
+   * aggregate：初始值不仅会参与分区内的计算，还参与分区间的计算  13 + 17 + 10 = 40
+ 8. fold
+  
+  `当aggregate分区间和分区内规则一致时，可以采用fold进行简化`
+
+ 9. foreach 
+  ```scala
+  val rdd: RDD[(String, Int)] = sc.makeRDD(List(
+      ("a", 1), ("a", 2), ("a", 3)
+    ))
+    //此处的foreach其实是各个Executor端的数据收集到Driver端内存集合的循环遍历方法
+    rdd.collect().foreach(println)
+
+    println("-------------------")
+    //此处的foreach其实是Executor端内存数据的打印
+    rdd.foreach(println)
+    /*
+    (a,1)
+    (a,2)
+    (a,3)
+    -------------------
+    (a,2)
+    (a,1)
+    (a,3)
+    */
+ ```
+
+
+- 序列化问题：
+   ![img.png](../../pic/foreach.png)
+   
+   User 在网络中传递
+```scala
+package spark.core.rdd.action
+
+import org.apache.spark.rdd.RDD
+import org.apache.spark.{SparkConf, SparkContext}
+
+object foreach_1 {
+  def main(args: Array[String]): Unit = {
+    val sparkConf: SparkConf = new SparkConf().setMaster("local[*]").setAppName("Operator")
+    val sc = new SparkContext(sparkConf)
+
+    //val rdd: RDD[Int] = sc.makeRDD(List(1, 2, 3, 4))
+    val rdd: RDD[Int] = sc.makeRDD(List())
+
+    val user = new User
+    //SparkException: Task not serializable
+    //NotSerializableException: com.ustb.ly.spark.core.rdd.operator.action.Spark07_RDD_Operator_Action$User
+
+    //RDD算子中传递的函数是包含闭包操作，那么就会进行检测功能
+    //闭包检测功能
+    rdd.foreach(num => {
+      println(user.age + num)
+    })
+    sc.stop()
+  }
+
+  //class User extends Serializable {   ------ 正确方法
+  //样例类在编译时，会自动混入序列化特质（实现可序列化接口）
+  //case class User() {                 ------ 正确方法
+  class User {                          ------ 错误方法
+    var age: Int = 30
+  }
+
+}
+
+```
+ 10. countByKey & countByValue
+   ```scala
+    val rdd: RDD[Int] = sc.makeRDD(List(1, 1, 1, 4),2)
+    val rdd1: RDD[(String, Int)] = sc.makeRDD(List(
+      ("a", 1), ("a", 2), ("a", 3)
+    ))
+    //TODO 行动算子 - countByValue & countByKey
+
+    val intToLong: collection.Map[Int, Long] = rdd.countByValue() //Map(4 -> 1, 1 -> 3)
+    println(intToLong)
+
+    val stringToLong: collection.Map[String, Long] = rdd1.countByKey() //Map(a -> 3)
+    println(stringToLong) 
+  ```
+ 11. save & saveAsTextFile & saveAsObjectFile & saveAsSequenceFile
+     - saveAsSequenceFile方法要求数据的格式必须为K-V类型
+
+
+```scala
+import org.apache.spark.rdd.RDD
+import org.apache.spark.{SparkConf, SparkContext}
+
+object reduce {
+  def main(args: Array[String]): Unit = {
+    val sparkConf: SparkConf = new SparkConf().setMaster("local[*]").setAppName("Operator")
+    val sc = new SparkContext(sparkConf)
+
+    val rdd: RDD[Int] = sc.makeRDD(List(1, 2, 3, 4))
+    //TODO 行动算子
+
+    //reduce
+    val res: Int = rdd.reduce(_ + _)
+    println(res)
+
+    //collect
+    //方法会将不同分区的数据按照分区顺序采集到Driver端的内存中，形成数组
+    val array: Array[Int] = rdd.collect()
+    println(array.mkString(","))
+
+    //count:数据源中数据的个数
+    val cnt: Long = rdd.count()
+    println(cnt)
+
+    //first:获取数据源中数据的第一个
+    val first: Int = rdd.first()
+    println(first)
+
+    //take:获取前N个数据
+    val take: Array[Int] = rdd.take(3)
+    println(take.mkString(","))
+
+    //takeOrdered:数据排序后，取前N个数据
+    val rdd1: RDD[Int] = sc.makeRDD(List(4, 2, 3, 1))
+    val takeOrdered: Array[Int] = rdd1.takeOrdered(3)(Ordering.Int.reverse) //降序
+    println(takeOrdered.mkString(","))
+
+    sc.stop()
+  }
+}
+```
+
+```scala
+    val rdd: RDD[Int] = sc.makeRDD(List(1, 2, 3, 4), 2)
+    //TODO 行动算子
+
+    //val res: Int = rdd.aggregate(0)(_ + _, _ + _)
+
+    //aggregateByKey：初始值只会参与分区内的计算  13 + 17 = 30
+    //aggregate：初始值不仅会参与分区内的计算，还参与分区间的计算  13 + 17 + 10 = 40
+    val res: Int = rdd.aggregate(10)(_ + _, _ + _)
+    println(res)
+
+    //fold:当aggregate分区间和分区内规则一致时，可以采用fold进行简化
+    val i: Int = rdd.fold(10)(_ + _)
+    println(i)
+   ```
 
 # 5. RDD依赖关系
 
