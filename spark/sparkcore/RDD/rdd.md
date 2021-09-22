@@ -1047,18 +1047,23 @@ object reduce {
 
 
 ![img.png](../../pic/依赖关系.png)
-## 5.1. 宽依赖【Shuffle， 多生】
-包含Shuffle过程，无法实现流水线方式处理
-- 父 RDD 的分区被不止一个子 RDD 的分区依赖
-- 具有宽依赖的 transformations 包括: sort, reduceByKey, groupByKey, join, 和调用rePartition函数的任何操作.
-- task 数量增加，分stage
-- 需要等待
-## 5.2. 窄依赖【一对一，独生】
-可以实现流水线优化
-- 父 RDD 中的每个分区最多只有一个子分区, 形象的比喻为独生子女
-- 可以在任何的的一个分区上单独执行, 而不需要其他分区的任何信息.
+## 5.1. 宽依赖
+   
+   `Shuffle， 多生 `
+   - 包含Shuffle过程，无法实现流水线方式处理
+   - 父 RDD 的分区被不止一个子 RDD 的分区依赖
+   - 具有宽依赖的 transformations 包括: sort, reduceByKey, groupByKey, join, 和调用rePartition函数的任何操作.
+   - task 数量增加，分stage
+   - 需要等待
+## 5.2. 窄依赖
+
+` 一对一，独生 `
+ - 可以实现流水线优化
+ - 父 RDD 中的每个分区最多只有一个子分区, 形象的比喻为独生子女
+ - 可以在任何的的一个分区上单独执行, 而不需要其他分区的任何信息.
 
 ## 5.3 总结
+
 `shuffle` 操作是 spark 中最耗时的操作,应尽量避免不必要的 `shuffle`.
 
 # 6. 任务划分
