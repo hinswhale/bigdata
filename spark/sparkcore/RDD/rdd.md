@@ -589,49 +589,50 @@ object reduceByKey_Transform {
     * 性能高， 在分区内先聚合再shuffle，可减少shuffle数据量 
     * 分区内和分区间运算规则相同
   4. aggregateByKey
-   - 功能
+     - 功能
     
-     ```
-     aggregateByKey[U: ClassTag](zeroValue: U)(seqOp: (U, V) => U, combOp: (U, U) => U)
-     ```
-     `分区内` 和 `分区间` 运算规则可不同
+       ```
+       aggregateByKey[U: ClassTag](zeroValue: U)(seqOp: (U, V) => U, combOp: (U, U) => U)
+       ```
+       `分区内` 和 `分区间` 运算规则可不同
 
-      * 第一个参数列表【zeroValue】，需要传递一个参数，表示为初始值
-          主要用于碰见第一个key的时候，和value进行分区内计算
-      * 第二个参数列表需要传递两个参数【(seqOp, combOp, [numTasks])】
-             * seqOp 第一个参数表示分区内计算规则
-             * combOp第二个参数表示分区间计算规则
-      * 结果与初始值类型一致
+        * 第一个参数列表【zeroValue】，需要传递一个参数，表示为初始值
+            主要用于碰见第一个key的时候，和value进行分区内计算
+        * 第二个参数列表需要传递两个参数【(seqOp, combOp, [numTasks])】
+               * seqOp 第一个参数表示分区内计算规则
+               * combOp第二个参数表示分区间计算规则
+        * 结果与初始值类型一致
       
-   - 代码    
-     - 取出每个分区内相同 key 的最大值然后分区间相加
-      ![img.png](../../pic/aggregateByKey.png)
+       - 代码    
+         - 取出每个分区内相同 key 的最大值然后分区间相加
+          ![img.png](../../pic/aggregateByKey.png)
 
+         ```scala
+             val rdd: RDD[(String, Int)] = sc.makeRDD(List(
+              ("a", 1), ("a", 2), ("b", 3),
+              ("b", 4), ("b", 5), ("a", 6)
+            ), 2)
+
+
+            val aggRDD: RDD[(String, Int)] = rdd.aggregateByKey(0)(
+              (x, y) => math.max(x, y),
+              (x, y) => (x + y)
+            )
+            //(b,8),(a,8)
+         ```
+  - 分区内和分区间也可以进行相同的逻辑操作，且可以使用Scala的至简原则进行简化
+   
        ```scala
-         val rdd: RDD[(String, Int)] = sc.makeRDD(List(
-          ("a", 1), ("a", 2), ("b", 3),
-          ("b", 4), ("b", 5), ("a", 6)
-        ), 2)
-
-
-        val aggRDD: RDD[(String, Int)] = rdd.aggregateByKey(0)(
-          (x, y) => math.max(x, y),
-          (x, y) => (x + y)
-        )
-        //(b,8),(a,8)
-        ```
-  
-     - 分区内和分区间也可以进行相同的逻辑操作，且可以使用Scala的至简原则进行简化
-      ```scala
         val aggRDD: RDD[(String, Int)] = rdd.aggregateByKey(0)(
           (x, y) => (x + y),
           (x, y) => (x + y)
         )
         val aggRDD: RDD[(String, Int)] = rdd.aggregateByKey(0)(_+_,_+_)
       ```
-    
-     - 获取相同key的数据的value的平均值
-        ```scala
+  
+  - 获取相同key的数据的value的平均值
+      
+    ```scala
         val rdd: RDD[(String, Int)] = sc.makeRDD(List(
           ("a", 1), ("a", 2), ("b", 3),
           ("b", 4), ("b", 5), ("a", 6)
@@ -657,7 +658,7 @@ object reduceByKey_Transform {
         * /
      ```
 
-   5. foldByKey
+  5. foldByKey
    - 功能
        
       分区内和分区间也可以进行相同的逻辑操作
@@ -782,7 +783,7 @@ object reduceByKey_Transform {
         (c,(3,4))
       */
       ```
-     1. leftOuterJoin & rightOuterJoin
+   - leftOuterJoin & rightOuterJoin
         ```scala
          // TODO 算子 —— Key-Value 类型 —— leftOuterJoin & rightOuterJoin
           val rdd1: RDD[(String, Int)] = sc.makeRDD(List(("a", 1), ("b", 2), ("c", 3)))
@@ -833,7 +834,7 @@ object reduceByKey_Transform {
     (c,(CompactBuffer(3),CompactBuffer()))
     */
    ```
-  10. 案例
+6. 案例
   ```scala
     import org.apache.spark.{SparkConf, SparkContext}
     import org.apache.spark.rdd.RDD
