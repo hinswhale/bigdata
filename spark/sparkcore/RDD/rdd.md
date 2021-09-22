@@ -24,8 +24,8 @@
     - [6.1. stage划分](#61-stage划分)
     - [6.2. DAG/job/Action/分区/关系](#62-DAG/job/Action/分区/关系)
 - [7. 持久化](#7-持久化)
-    - [7.1. persist&cache](#71-persist&cache)
-    - [7.2. checkpoint](#71-checkpoint)
+    - [7.1. persist与cache](#71-persist与cache)
+    - [7.2. checkpoint](#72-checkpoint)
 - [8. 序列化](#8-序列化)
 
 <!-- /TOC -->
@@ -1133,7 +1133,7 @@ DAGScheduler会把DAG划分成互相依赖的多个stage。
     resRDD1.collect().foreach(println)
 ```
 
-## persist&cache
+## persist与cache
 ![img.png](../../pic/持久化3.png)
 
 
