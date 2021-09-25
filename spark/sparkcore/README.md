@@ -1,33 +1,40 @@
-# 📖 
+# 📖
 - [spark基础](#spark基础)
-  - [架构设计](架构.md#架构设计)
-  - [运行模式](#运行模式)
-  - [环境搭建](#环境搭建)
-  - [基础概念](#基础概念)
-  - [任务基本流程](#任务基本流程)
+    - [架构设计](架构.md#架构设计)
+    - [运行模式](架构.md#运行模式)
+        - [local](架构.md#local)
+        - [standalone](架构.md#standalone)
+        - [yarn](架构.md#yarn)
+    - [环境搭建](架构.md#环境搭建)
+    - [基础概念](架构.md#基础概念)
+    - [任务基本流程](架构.md#任务基本流程)
+    - [参考资料](架构.md#参考资料)
 - [RDD基础](#RDD基础)
-  - [常用RDD算子](RDD/README.md)
-  - [累加器](#累加器)
-    - [累加器注意问题](#累加器注意问题)
-    - [自定义累加器](#自定义累加器)
-  - [广播变量](#广播变量)
-    - [实例](#实例)
+    - [常用RDD算子](RDD/README.md)
+    - [累加器](#累加器)
+        - [累加器注意问题](#累加器注意问题)
+        - [自定义累加器](#自定义累加器)
+    - [广播变量](#广播变量)
+        - [实例](#实例)
 - spark性能优化
-  - 开发调优篇
-  - 资源调优篇
-  - 数据倾斜处理
-  - shuffle调优
+    - 开发调优篇
+    - 资源调优篇
+    - 数据倾斜处理
+    - shuffle调优
 
 # RDD基础
+
 ## 累加器
- ```longAccumulator``` 分布式共享只写变量
+
+```longAccumulator``` 分布式共享只写变量
 
 ### 累加器注意问题
-  - 注意⚠️
-     - 少加：转换算子中调用累加器，如果没有调用行动算子的话，那么会出现少加的情况
-     - 多加：转换算子中调用累加器，如果多次调用行动算子，那么会出现多加的情况
-     - 一般情况下，累加器会放在`行动算子`中进行操作
-  - 实例
+
+- 注意⚠️
+    - 少加：转换算子中调用累加器，如果没有调用行动算子的话，那么会出现少加的情况
+    - 多加：转换算子中调用累加器，如果多次调用行动算子，那么会出现多加的情况
+    - 一般情况下，累加器会放在`行动算子`中进行操作
+- 实例
     - 未用累加器版本
       ```scala
       val rdd = sc.makeRDD(List(1, 2, 3, 4))
@@ -43,7 +50,7 @@
           println(sum)
       // sum=0 因为分区，每个分区sum初始值为0
       ```
-    
+
     - 累加器重写版本
       ```scala
       import org.apache.spark.util.LongAccumulator
@@ -96,8 +103,11 @@
       mapRDD.collect()
       println(sumAcc.value)
       ```
+
 ### 自定义累加器
-  - 实例 wordCount
+
+- 实例 wordCount
+
    ```scala
     import org.apache.spark.util.{AccumulatorV2, LongAccumulator}
     import org.apache.spark.{SparkConf, SparkContext}
@@ -184,36 +194,39 @@
    ```
 
 ## 广播变量
+
 ` 分布式共享只读变量 `
 
- ### 实例
- - 未加广播变量
-     ```scala
-     val rdd1 = sc.makeRDD(List(
-      ("a", 1),
-      ("b", 2),
-      ("c", 3)
-    ))
+### 实例
 
-    val rdd2 = sc.makeRDD(List(
-      ("a", 4),
-      ("b", 5),
-      ("c", 6)
-    ))
+- 未加广播变量
+    ```scala
+    val rdd1 = sc.makeRDD(List(
+     ("a", 1),
+     ("b", 2),
+     ("c", 3)
+   ))
 
-    //join会导致数据量几何增长，并且会影响shuffle的性能，不推荐使用
-    val joinRDD: RDD[(String, (Int, Int))] = rdd1.join(rdd2)
-    joinRDD.collect().foreach(println)
-    /*
-      (a,(1,4))
-      (b,(2,5))
-      (c,(3,6))
-    */
-    ```
-    
- - 无join版本[数据量大时，性能不好]
- 
- ![img.png](../pic/core/广播变量.png)
+   val rdd2 = sc.makeRDD(List(
+     ("a", 4),
+     ("b", 5),
+     ("c", 6)
+   ))
+
+   //join会导致数据量几何增长，并且会影响shuffle的性能，不推荐使用
+   val joinRDD: RDD[(String, (Int, Int))] = rdd1.join(rdd2)
+   joinRDD.collect().foreach(println)
+   /*
+     (a,(1,4))
+     (b,(2,5))
+     (c,(3,6))
+   */
+   ```
+
+- 无join版本[数据量大时，性能不好]
+
+![img.png](../pic/core/广播变量.png)
+
    ```scala
    val rdd1 = sc.makeRDD(List(
      ("a", 1),
@@ -229,9 +242,11 @@
      }
    }.collect().foreach(println)
    ```
- - 广播变量
-  
-  ![img.png](../pic/core/广播变量1.png)
+
+- 广播变量
+
+![img.png](../pic/core/广播变量1.png)
+
    ```scala
     val rdd1 = sc.makeRDD(List(
       ("a", 1),
