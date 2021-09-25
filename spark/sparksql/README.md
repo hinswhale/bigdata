@@ -126,4 +126,119 @@ res17: org.apache.spark.rdd.RDD[emp] = MapPartitionsRDD[39] at rdd at <console>:
 
 # RDD  DataFrame  DataSet 转化关系
 
+```scala
+  type DataFrame = Dataset[Row]
+
+```
+
 ![img_2.png](../pic/sql/dataset-rdd-dataframe.png)
+
+```scala
+package spark.sql
+
+import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.{DataFrame, Dataset, Row, SparkSession}
+import org.apache.spark.{SparkConf, SparkContext}
+
+object Basic {
+  def main(args: Array[String]): Unit = {
+    val sparkConf: SparkConf = new SparkConf().setMaster("local").setAppName("Bc")
+    val sess = SparkSession.builder().config(sparkConf).getOrCreate()
+    import sess.implicits._
+
+    // DataFrame
+    //    val df: DataFrame = sess.read.json("datas/user.json")
+    //df.show()
+
+    //DataFrame => SQL
+    //    df.createOrReplaceTempView("user")
+    //    sess.sql("select age, username from user").show
+    //    sess.sql("select avg(age) from user").show
+
+    //DataFrame => DSL
+    //    //转换操作,需引入转换规则
+    //    df.select("age", "username").show()
+    //    df.select($"age"+1).show()
+
+
+    //    val seq = Seq(1, 2, 3, 4)
+    //    val ds: Dataset[Int] = seq.toDS()
+    //    ds.show()
+
+    //DataSet DataFrame是特定泛型DataSet
+    // DataFrame方法都适合DataSet
+    //    val ds = sess.read.json("datas/user.json")
+    //    ds.createOrReplaceTempView("user")
+    //    sess.sql("select age, username from user").show
+
+    //RDD <=> DataFrame
+    val rdd = sess.sparkContext.makeRDD(List((1, "zhangsan", 40), (2, "wangwu", 2)))
+    val df = rdd.toDF("id", "name", "age")
+    val rdd1: RDD[Row] = df.rdd
+
+    //DataSet <=> DataFrame
+    val ds: Dataset[User] = df.as[User] // df => ds
+    ds.toDF() // ds => df
+
+
+    //RDD <=> DataSet
+    val ds1: Dataset[User] = rdd.map {
+      case (id, name, age) => {
+        User(id, name, age)
+      }
+    }.toDS()
+    val rdd2: RDD[User] = ds1.rdd
+    sess.close()
+
+  }
+
+  case class User(id: Int, name: String, age: Int)
+
+}
+
+```
+
+# UDF函数
+## 弱类型
+## 强类型
+
+# 文件读取
+
+![img_4.png](img_4.png)
+
+```scala
+scala>  sess.read.load
+scala> sess.read.json("filename")
+scala> spark.sql("select * from json.`datas/user.json`").show
++---+---------+
+|age| username|
++---+---------+
+| 10|zhhangsan|
+| 20|    wanwu|
+| 30|zhhangsan|
++---+---------+
+scala>  df.write.save("filename")
+scala>  df.write.save("filename") //报错。已存在
+scala> df.write.format("json").mode("ignore").save("out") //不报错
+```
+
+## csv
+```scala
+val dataFrame: DataFrame = spark.read.format("csv")
+      .option("header", "true")
+      .option("encoding", "gbk2312")
+      .load(path)
+```
+
+## Mysql
+
+![img_5.png](img_5.png)
+
+![img_6.png](img_6.png)
+
+## Hive
+### 内置
+### 外置
+- 连接方法
+
+![img_7.png](../pic/sql/Hive.png)
