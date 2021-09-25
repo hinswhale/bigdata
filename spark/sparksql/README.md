@@ -1,5 +1,3 @@
-[TOC]
-
 ## [spark SQL](basics)
 
 
