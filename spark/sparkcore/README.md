@@ -208,6 +208,7 @@
     ```
     
  - 无join版本[数据量大时，性能不好]
+ 
  ![img.png](../pic/广播变量.png)
    ```scala
    val rdd1 = sc.makeRDD(List(
