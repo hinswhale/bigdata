@@ -13,7 +13,7 @@
 ## [spark入门](basics)
 
 - [spark 架构设计](basics/spark-core.md)
-  - ![img.png](pic/架构.png)
+  - ![img.png](pic/basis/架构.png)
 
 - [spark 运行流程](basics/spark-core.md)
   - ![img.png](pic/img_1.png)

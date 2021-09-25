@@ -98,7 +98,7 @@ makeRDD方法底层调用了parallelize方法
 
 ## 分区算法
 
-![img.png](../../pic/分区.png)
+![img.png](../../pic/core/分区.png)
 
 - 偏移量 
 
@@ -564,7 +564,7 @@ val rdd: RDD[(String, Int)] = sc.makeRDD(List(
 ```
 
   3. reduceByKey
-![img.png](../../pic/reduceByKey.png)
+![img.png](../../pic/core/reduceByKey.png)
 - ⚠️注意
     
    reduceByKey中如果一个key的数据只有一个，是不会参与运算的
@@ -618,7 +618,7 @@ object reduceByKey_Transform {
       
        - 代码    
          - 取出每个分区内相同 key 的最大值然后分区间相加
-          ![img.png](../../pic/aggregateByKey.png)
+          ![img.png](../../pic/core/aggregateByKey.png)
 
          ```scala
              val rdd: RDD[(String, Int)] = sc.makeRDD(List(
@@ -701,7 +701,7 @@ object reduceByKey_Transform {
   
      - 代码
       - 获取相同key的数据的value的平均值
-         ![img.png](../../pic/combineByKey.png)
+         ![img.png](../../pic/core/combineByKey.png)
       ```scala
      val rdd: RDD[(String, Int)] = sc.makeRDD(List(
        ("a", 1), ("a", 2), ("b", 3),
@@ -1047,7 +1047,7 @@ object reduce {
    ```
 
 
-![img.png](../../pic/依赖关系.png)
+![img.png](../../pic/core/依赖关系.png)
 ## 5.1. 宽依赖
    
    `Shuffle， 多生 `
@@ -1068,7 +1068,7 @@ object reduce {
 `shuffle` 操作是 spark 中最耗时的操作,应尽量避免不必要的 `shuffle`.
 
 # 6. 任务划分
-![img.png](../../pic/stage.png)
+![img.png](../../pic/core/stage.png)
 
 划分stage的依据就是RDD之间的宽窄依赖
 
@@ -1083,7 +1083,7 @@ DAGScheduler会把DAG划分成互相依赖的多个stage。
 - 对于宽依赖，由于有Shuffle的存在，只能在parent RDD处理完成后，才能开始接下来的计算，因此宽依赖是划分Stage的依据。
 
 ## 6.2 DAG job Action 分区 关系
-![img.png](../../pic/stage分析.png)
+![img.png](../../pic/core/stage分析.png)
 
 * 概念
   - Application 初始化一个SparkContext即生成一个Application
@@ -1137,7 +1137,7 @@ DAGScheduler会把DAG划分成互相依赖的多个stage。
 ![img.png](../../pic/持久化3.png)
 
 
-![img.png](../../pic/persist.png)
+![img.png](../../pic/core/persist.png)
 ## 7.2 checkpoint
 - 需要落盘，需指定检查点保存路径
 - 检查点路径保存的文件，当作业执行完毕，不会被删除
@@ -1227,7 +1227,7 @@ object persist3 {
 
    User 在网络中传递，driver创建，excuter计算
 
-   ![img.png](../../pic/foreach.png)
+   ![img.png](../../pic/core/foreach.png)
 
 ```scala
 package spark.core.rdd.action
