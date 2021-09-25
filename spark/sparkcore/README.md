@@ -19,8 +19,8 @@
 - spark性能优化
     - 开发调优篇
     - 资源调优篇
-    - 数据倾斜处理
-    - shuffle调优
+  参考资料
+
 
 # RDD基础
 
@@ -268,3 +268,36 @@
       }
     }.collect().foreach(println)
   ```
+# spark性能优化
+- 减少shuffle开销
+  - 减少次数，尽量不改变key，把数据处理放local
+  - 减少shuffle数据规模
+
+## 开发调优篇
+- RDD效率
+  - 同一份数据，创建同一个RDD
+  - 尽可能复用同一个RDD
+  - 对多次使用的RDD进行持久化
+    - 调用cache()和persist()即可
+
+- 优化数据结构
+  
+   Java中，有三种类型比较耗费内存：
+     * 1、对象，每个Java对象都有对象头、引用等额外的信息，因此比较占用内存空间。
+     * 2、字符串，每个字符串内部都有一个字符数组以及长度等额外信息。
+     * 3、集合类型，比如HashMap、LinkedList等，因为集合类型内部通常会使用一些内部类来封装集合元素，比如Map.Entry。
+
+- 任务并行度
+- 小文件合并
+
+- 原则四：尽量避免使用shuffle类算子
+- 原则五：使用map-side预聚合的shuffle操作
+- 原则六：使用高性能的算子
+- 原则七：广播大变量
+- 原则八：使用Kryo优化序列化性能
+## 资源调优篇
+## 数据倾斜
+# 参考资料
+- [Spark性能优化指南——高级篇](https://tech.meituan.com/2016/05/12/spark-tuning-pro.html) 📚
+- [Spark性能优化指南——基础篇](https://tech.meituan.com/2016/04/29/spark-tuning-basic.html) 📚
+
