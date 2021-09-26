@@ -28,6 +28,15 @@
 
 ```longAccumulator``` 分布式共享只写变量
 
+- 无累加器
+![img_6.png](../pic/无累加器.png)
+- 加累加器
+![img_7.png](../pic/加累加器.png)
+
+### 注意事项
+- 累加器在Driver端定义赋初始值，累加器只能在Driver端读取最后的值，在Excutor端更新。
+- 累加器不是一个调优的操作，因为如果不这样做，结果是错的
+
 ### 累加器注意问题
 
 - 注意⚠️
@@ -194,8 +203,22 @@
    ```
 
 ## 广播变量
-
 ` 分布式共享只读变量 `
+
+- 不使用广播变量
+![img_6.png](../pic/不使用广播变量.png)
+- 使用广播变量的情况
+![img_7.png](../pic/使用广播变量.png)
+
+
+### 注意事项
+- 能不能将一个RDD使用广播变量广播出去？
+
+  不能，因为RDD是不存储数据的。可以将RDD的结果广播出去。
+- 广播变量只能在Driver端定义，不能在Executor端定义。
+- 在Driver端可以修改广播变量的值，在Executor端无法修改广播变量的值。
+- 如果executor端用到了Driver的变量，如果不使用广播变量在Executor有多少task就有多少Driver端的变量副本。
+- 如果Executor端用到了Driver的变量，如果使用广播变量在每个Executor中只有一份Driver端的变量副本。
 
 ### 实例
 
@@ -268,36 +291,10 @@
       }
     }.collect().foreach(println)
   ```
-# spark性能优化
-- 减少shuffle开销
-  - 减少次数，尽量不改变key，把数据处理放local
-  - 减少shuffle数据规模
 
-## 开发调优篇
-- RDD效率
-  - 同一份数据，创建同一个RDD
-  - 尽可能复用同一个RDD
-  - 对多次使用的RDD进行持久化
-    - 调用cache()和persist()即可
 
-- 优化数据结构
-  
-   Java中，有三种类型比较耗费内存：
-     * 1、对象，每个Java对象都有对象头、引用等额外的信息，因此比较占用内存空间。
-     * 2、字符串，每个字符串内部都有一个字符数组以及长度等额外信息。
-     * 3、集合类型，比如HashMap、LinkedList等，因为集合类型内部通常会使用一些内部类来封装集合元素，比如Map.Entry。
-
-- 任务并行度
-- 小文件合并
-
-- 原则四：尽量避免使用shuffle类算子
-- 原则五：使用map-side预聚合的shuffle操作
-- 原则六：使用高性能的算子
-- 原则七：广播大变量
-- 原则八：使用Kryo优化序列化性能
-## 资源调优篇
-## 数据倾斜
 # 参考资料
-- [Spark性能优化指南——高级篇](https://tech.meituan.com/2016/05/12/spark-tuning-pro.html) 📚
-- [Spark性能优化指南——基础篇](https://tech.meituan.com/2016/04/29/spark-tuning-basic.html) 📚
-
+- [Spark学习之路 （八）SparkCore的调优之开发调优](https://www.cnblogs.com/qingyunzong/p/8946637.html#_label10)
+- [Spark性能调优实战](https://time.geekbang.org/column/intro/100073401)
+- [Spark性能调优实战_xiewenbo](https://www.cxyzjd.com/article/xiewenbo/50041613)
+- https://changbo.tech/blog/19c2ab93.html
