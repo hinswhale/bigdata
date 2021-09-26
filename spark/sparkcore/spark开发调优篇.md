@@ -1,5 +1,5 @@
-## 开发调优篇
-1. RDD效率
+# 📖 开发调优篇
+## 1. RDD效率
    - 同一份数据，创建同一个RDD
    - 尽可能复用同一个RDD
    - 对多次使用的RDD进行持久化
@@ -44,19 +44,19 @@ rdd1.map(...)
 rdd1.reduce(...)
 ```
 
-2. 优化数据结构
+## 2. 优化数据结构
 
    Java中，有三种类型比较耗费内存：
 - 1、对象，每个Java对象都有对象头、引用等额外的信息，因此比较占用内存空间。
 - 2、字符串，每个字符串内部都有一个字符数组以及长度等额外信息。
 - 3、集合类型，比如HashMap、LinkedList等，因为集合类型内部通常会使用一些内部类来封装集合元素，比如Map.Entry。
 
-3. 任务并行度
+## 3. 任务并行度
 - 每个cpu core设置2-3个task
 - 小文件合并
   - textFile， 指定Partition个数
   - textFile + re指定Partition重分区
-4. 尽量避免使用shuffle类算子
+## 4. 尽量避免使用shuffle类算子
 ```scala
 // 传统的join操作会导致shuffle操作。
 // 因为两个RDD中，相同的key都需要通过网络拉取到一个节点上，由一个task进行join操作。
@@ -76,7 +76,7 @@ val rdd3 = rdd1.map(rdd2DataBroadcast...)
 // 因为每个Executor的内存中，都会驻留一份rdd2的全量数据。
 ```
 
-5. 使用高性能的算子,尽量避免使用shuffle类算子
+## 5. 使用高性能的算子,尽量避免使用shuffle类算子
 - 预聚合 reduceByKey/aggregateByKey替代groupByKey
   - groupByKey  先数据传输后再聚合
   - reduceByKey/aggregateByKey 先聚合，传输，再聚合
@@ -91,14 +91,14 @@ val rdd3 = rdd1.map(rdd2DataBroadcast...)
 - foreachPartition替代foreach
   - foreachPartition 一次性处理一个Partition数据
 - 使用repartitionAndSortWithinPartitions替代repartition与sort类操作
-6. 广播变量
+## 6. 广播变量
   
    在算子函数中使用到外部变量时，默认情况下，Spark会将该变量复制多个副本，通过网络传输到task中，此时每个task都有一个变量副本.
   广播后的变量，会保证每个Executor的内存中，只驻留一份变量副本，而Executor中的task执行时共享该Executor中的那份变量副本
   - 大表关联小表，特别是配置表
   - 算法参数虎或外部小变量
 
-7. 使用Kryo优化序列化性能
+## 7. 使用Kryo优化序列化性能
 对于这三种出现序列化的地方，我们都可以通过使用Kryo序列化类库，来优化序列化和反序列化的性能。Spark默认使用的是Java的序列化机制，也就是ObjectOutputStream/ObjectInputStream API来进行序列化和反序列化。
 但是Spark同时支持使用Kryo序列化库，Kryo序列化类库的性能比Java序列化类库的性能要高很多。官方介绍，Kryo序列化机制比Java序列化机制，性能高10倍左右。
 ```scala
@@ -109,9 +109,9 @@ conf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
 // 注册要序列化的自定义类型。
 conf.registerKryoClasses(Array(classOf[MyClass1], classOf[MyClass2]))
 ```
-8.Driver查看数据
+## 8.Driver查看数据
 - 减少RDD的直接collect，print操作
 - take().collect()或者first()
 
-9.Data Locality本地化级别
+## 9.Data Locality本地化级别
 - [Spark学习之路 （八）SparkCore的调优之开发调优](https://www.cnblogs.com/qingyunzong/p/8946637.html#_label10)

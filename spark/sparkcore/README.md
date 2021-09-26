@@ -1,4 +1,4 @@
-# 📖
+# 📖 spark
 - [spark基础](#spark基础)
     - [架构设计](架构.md#架构设计)
     - [运行模式](架构.md#运行模式)
@@ -16,11 +16,16 @@
         - [自定义累加器](#自定义累加器)
     - [广播变量](#广播变量)
         - [实例](#实例)
-- spark性能优化
-    - 开发调优篇
-    - 资源调优篇
-  参考资料
-
+  - [开发调优篇](spark开发调优篇.md)
+  - [资源调优篇](spark资源调优篇.md)
+    - [JVM的基本架构](https://www.cnblogs.com/qingyunzong/p/8973748.html)
+    - [JVM的GC垃圾收集器](https://www.cnblogs.com/qingyunzong/p/8973857.html)
+  - [数据倾斜调优](数据倾斜调优.md#数据倾斜调优)
+    - [某个task执行特别慢的情况](数据倾斜调优.md#某个task执行特别慢的情况)
+    - [解决方案](数据倾斜调优.md#解决方案)
+  - [Shuffle调优](https://www.cnblogs.com/qingyunzong/p/8954552.html)
+  - [Spark内存模型](https://www.cnblogs.com/qingyunzong/p/8955141.html)
+- [参考资料](#参考资料)
 
 # RDD基础
 
@@ -294,6 +299,8 @@
 
 
 # 参考资料
+- [Spark性能优化指南——高级篇](https://tech.meituan.com/2016/05/12/spark-tuning-pro.html) 📚
+- [Spark性能优化指南——基础篇](https://tech.meituan.com/2016/04/29/spark-tuning-basic.html) 📚
 - [Spark学习之路 （八）SparkCore的调优之开发调优](https://www.cnblogs.com/qingyunzong/p/8946637.html#_label10)
 - [Spark性能调优实战](https://time.geekbang.org/column/intro/100073401)
 - [Spark性能调优实战_xiewenbo](https://www.cxyzjd.com/article/xiewenbo/50041613)
