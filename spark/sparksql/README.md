@@ -1,14 +1,28 @@
-## [spark SQL](basics)
-
-
-
-- [DataFrame&DataSet](basics/spark-core.md)
-- [SQL的基本使用](basics/spark-core.md)
-- [DSL语法的基本使用](basics/spark-core.md)
-- [RDD之间的转换](basics/spark-core.md)
-- [SQL的基本使用](basics/spark-core.md)
-- [SQL的基本使用](basics/spark-core.md)
-
+# 📖 spark SQL
+* [基本概念](#基本概念)
+   * [DataFrame](#dataframe)
+   * [DataSet](#dataset)
+   * [SparkSession](#sparksession)
+* [DataFrame](#dataframe-1)
+   * [基本用法](#基本用法)
+   * [DataFrame创建](#dataframe创建)
+      * [从spark数据源创建](#从spark数据源创建)
+      * [RDD](#rdd)
+      * [Hive](#hive)
+   * [SQL的基本使用](#sql的基本使用)
+      * [DSL语法的基本使用](#dsl语法的基本使用)
+* [DataSet](#dataset-1)
+   * [创建](#创建)
+* [RDD  DataFrame  DataSet 转化关系](#rdd--dataframe--dataset-转化关系)
+* [UDF函数](#udf函数)
+   * [弱类型](#弱类型)
+   * [强类型](#强类型)
+* [文件读取](#文件读取)
+   * [csv](#csv)
+   * [Mysql](#mysql)
+   * [Hive](#hive-1)
+      * [内置](#内置)
+      * [外置](#外置)
 
 
 # 基本概念
@@ -16,19 +30,20 @@
 ```DataFrame = Schema(表结构) + RDD（代表数据）```
 ## DataSet
    数据的分布式集合.Dataset是在Spark 1.6中添加的一个新接口，是DataFrame之上更高一级的抽象。
-
+## SparkSession
+ - SparkSession作为DataSet和DataFrame API的切入点，SparkSession封装了SparkConf、SparkContext和SQLContext。
 
 # DataFrame
 
  SparkSession是创建DataFrame和执行SQL的入口
 
-示例文件： user.json
-数据格式：
-```json
-{"username":"zhhangsan", "age":  10}
-{"username":"wanwu", "age":  20}
-{"username":"zhhangsan", "age":  30}
-```
+- 示例文件：
+  `user.json`数据格式：
+    ```json
+    {"username":"zhhangsan", "age":  10}
+    {"username":"wanwu", "age":  20}
+    {"username":"zhhangsan", "age":  30}
+    ```
 ## 基本用法
 ![img.png](img.png)
 ![img_1.png](img_1.png)
@@ -36,7 +51,8 @@
 ## DataFrame创建
 ### 从spark数据源创建
  `spark.read.[json,text, ....]`
-从内存中可获取数据类型，但文件中读取获取不到,数字用bigint接受不了
+   
+  从内存中可获取数据类型，但文件中读取获取不到,数字用bigint接受不了
 
 ### RDD
 - RDD与DataFrame互相转化
@@ -47,16 +63,17 @@
 
 ### Hive
 
-### SQL的基本使用
+## SQL的基本使用
 
-```df.createOrReplaceTempView("user")
+```scala
+    df.createOrReplaceTempView("user")
 ```
 
 - table VS View
-table 可修改
-View 查询
-- 普通临时表是session范围内的， df.createOrReplaceGlobalTempView VS df.createOrReplaceTempView
 
+    `table 可修改
+     View 查询`
+- 普通临时表是session范围内的， df.createOrReplaceGlobalTempView VS df.createOrReplaceTempView
 ```scala
   spark.newSession.sql("select * from global_user.user")
   spark.newSession.sql("select * from global_temp.emp")
@@ -123,10 +140,10 @@ res17: org.apache.spark.rdd.RDD[emp] = MapPartitionsRDD[39] at rdd at <console>:
 ```
 
 # RDD  DataFrame  DataSet 转化关系
+![img_7.png](img_7.png)
 
 ```scala
   type DataFrame = Dataset[Row]
-
 ```
 
 ![img_2.png](../pic/sql/dataset-rdd-dataframe.png)
