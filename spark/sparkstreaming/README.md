@@ -15,7 +15,7 @@
 SparkStreaming 准实时（秒，分钟），微批次（设置时间）的数据处理框架
 
 ## 原理
-![img.png](streaming流程.png)
+![img.png](../pic/streaming流程.png)
 
 * 离散化流 Dstream 对RDD的封装
 * 时间区间

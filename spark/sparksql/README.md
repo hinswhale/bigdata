@@ -55,11 +55,9 @@
   从内存中可获取数据类型，但文件中读取获取不到,数字用bigint接受不了
 
 ### RDD
-- RDD与DataFrame互相转化
-    
-    ![img_2.png](../pic/sql/RDDandFrame.png)
 - 示例
-    ![img_2.png](../pic/sql/RDDtoDataFrame.png)
+    
+  ![img_2.png](../pic/sql/RDDtoDataFrame.png)
 
 ### Hive
 
@@ -94,6 +92,7 @@
 
 ## 创建
 - DataFrame => DataSet
+
 ```shell
 scala> val df = spark.read.json("/Users/liusj/spark-demo/datas/user.json")
 df: org.apache.spark.sql.DataFrame = [age: bigint, username: string]
@@ -122,6 +121,7 @@ scala> ds.show
 | 30|zhhangsan|
 +---+---------+
 ```
+
 - DataSet => DataFrame
 
   ```ds.toDF()```
@@ -129,14 +129,14 @@ scala> ds.show
 - RDD <=> DataSet
 
 ```shell
-scala> case class emp(username:String, age:Long)
-scala> val rdd = sc.makeRDD(List(emp("zhang", 30), emp("HAHAH", 10)))
-rdd: org.apache.spark.rdd.RDD[emp] = ParallelCollectionRDD[36] at makeRDD at <console>:26
-
-scala> rdd.toDS
-res16: org.apache.spark.sql.Dataset[emp] = [username: string, age: bigint]
-scala> rdd.toDS.rdd
-res17: org.apache.spark.rdd.RDD[emp] = MapPartitionsRDD[39] at rdd at <console>:26
+    scala> case class emp(username:String, age:Long)
+    scala> val rdd = sc.makeRDD(List(emp("zhang", 30), emp("HAHAH", 10)))
+    rdd: org.apache.spark.rdd.RDD[emp] = ParallelCollectionRDD[36] at makeRDD at <console>:26
+    
+    scala> rdd.toDS
+    res16: org.apache.spark.sql.Dataset[emp] = [username: string, age: bigint]
+    scala> rdd.toDS.rdd
+    res17: org.apache.spark.rdd.RDD[emp] = MapPartitionsRDD[39] at rdd at <console>:26
 ```
 
 # RDD  DataFrame  DataSet 转化关系
@@ -145,8 +145,7 @@ res17: org.apache.spark.rdd.RDD[emp] = MapPartitionsRDD[39] at rdd at <console>:
 ```scala
   type DataFrame = Dataset[Row]
 ```
-
-![img_2.png](../pic/sql/dataset-rdd-dataframe.png)
+![](../pic/sql/dataset2.png)
 
 ```scala
 package spark.sql
@@ -175,7 +174,7 @@ object Basic {
     //    df.select("age", "username").show()
     //    df.select($"age"+1).show()
 
-
+    //RDD => Dataset
     //    val seq = Seq(1, 2, 3, 4)
     //    val ds: Dataset[Int] = seq.toDS()
     //    ds.show()
@@ -214,8 +213,8 @@ object Basic {
 ```
 
 # 自定义函数
-UDF(User Defined Functions)是普通的不会产生Shuffle不会划分新的阶段的用户自定义函数，
-UDAF(User Defined Aggregator Functions)则会打乱分区，用户自定义聚合函数。
+- UDF(User Defined Functions)是普通的不会产生Shuffle不会划分新的阶段的用户自定义函数，
+- UDAF(User Defined Aggregator Functions)则会打乱分区，用户自定义聚合函数。
 ## UDF
 ```scala
     import org.apache.spark.sql.functions  // DSL中定义UDF需要
